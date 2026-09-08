@@ -1,0 +1,34 @@
+[
+  {
+    "theme": "midnight",
+    "width": 1440,
+    "height": 900,
+    "button": 32,
+    "mouseAndKeyboard": true,
+    "overflow": false
+  },
+  {
+    "theme": "roseglass",
+    "width": 1440,
+    "height": 900,
+    "button": 32,
+    "mouseAndKeyboard": true,
+    "overflow": false
+  },
+  {
+    "theme": "jadeatelier",
+    "width": 1024,
+    "height": 768,
+    "button": 32,
+    "mouseAndKeyboard": true,
+    "overflow": false
+  },
+  {
+    "theme": "lilacdream",
+    "width": 1024,
+    "height": 768,
+    "button": 32,
+    "mouseAndKeyboard": true,
+    "overflow": false
+  }
+]

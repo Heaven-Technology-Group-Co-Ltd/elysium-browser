@@ -1,0 +1,8 @@
+{
+  "method": "Actual HTTPS Notification.requestPermission with an intercepted native dialog returning deny; no hardware permission was granted",
+  "permission": {
+    "decision": "denied",
+    "prompt": "https://example.com ต้องการแสดงการแจ้งเตือน"
+  },
+  "revocation": true
+}

@@ -1,0 +1,280 @@
+{
+  "method": "Imagegen generation/retouch + deterministic crop/export",
+  "hero": "Short-blue-bob Cherry illustration exported as a navy matte artwork panel; not claimed as an alpha cutout",
+  "assistant": "Separate short-blue-bob chibi scene for the assistant card; no UI text baked into the artwork",
+  "cyrvor": "Deterministic card crop from the supplied CYRVOR reference; not claimed as a transparent logo cutout",
+  "inputs": {
+    "hero": "artwork-source/cherry-hero.png",
+    "homeShort": "artwork-source/cherry-home-short.png",
+    "assistantShort": "artwork-source/cherry-assistant-short.png",
+    "cyrvor": "artwork-source/cyrvor-brand.png",
+    "city": "artwork-source/city-backdrop.png",
+    "team": "artwork-source/team-banner.png",
+    "themes": {
+      "rose": "artwork-source/theme-rose.png",
+      "aurora": "artwork-source/theme-aurora.png",
+      "solar": "artwork-source/theme-solar.png",
+      "crimson": "artwork-source/theme-crimson.png",
+      "emerald": "artwork-source/theme-emerald.png",
+      "cosmic": "artwork-source/theme-cosmic.png",
+      "aqua": "artwork-source/theme-aqua.png",
+      "lunar": "artwork-source/theme-lunar.png",
+      "silver": "artwork-source/theme-silver.png"
+    }
+  },
+  "files": [
+    {
+      "file": "avatar-cherry-short.webp",
+      "bytes": 27366,
+      "width": 256,
+      "height": 256,
+      "alpha": false
+    },
+    {
+      "file": "avatar-cherry.webp",
+      "bytes": 23062,
+      "width": 256,
+      "height": 256,
+      "alpha": false
+    },
+    {
+      "file": "avatar-ghost.webp",
+      "bytes": 10644,
+      "width": 256,
+      "height": 256,
+      "alpha": false
+    },
+    {
+      "file": "avatar-nova.webp",
+      "bytes": 11266,
+      "width": 256,
+      "height": 256,
+      "alpha": false
+    },
+    {
+      "file": "avatar-violet.webp",
+      "bytes": 12374,
+      "width": 256,
+      "height": 256,
+      "alpha": false
+    },
+    {
+      "file": "backdrop-aqua.webp",
+      "bytes": 183414,
+      "width": 1672,
+      "height": 941,
+      "alpha": false
+    },
+    {
+      "file": "backdrop-aurora.webp",
+      "bytes": 315952,
+      "width": 1672,
+      "height": 941,
+      "alpha": false
+    },
+    {
+      "file": "backdrop-cosmic.webp",
+      "bytes": 314108,
+      "width": 1672,
+      "height": 941,
+      "alpha": false
+    },
+    {
+      "file": "backdrop-crimson.webp",
+      "bytes": 255232,
+      "width": 1672,
+      "height": 941,
+      "alpha": false
+    },
+    {
+      "file": "backdrop-emerald.webp",
+      "bytes": 252104,
+      "width": 1672,
+      "height": 941,
+      "alpha": false
+    },
+    {
+      "file": "backdrop-lunar.webp",
+      "bytes": 239366,
+      "width": 1672,
+      "height": 941,
+      "alpha": false
+    },
+    {
+      "file": "backdrop-rose.webp",
+      "bytes": 314278,
+      "width": 1672,
+      "height": 941,
+      "alpha": false
+    },
+    {
+      "file": "backdrop-silver.webp",
+      "bytes": 67660,
+      "width": 1672,
+      "height": 941,
+      "alpha": false
+    },
+    {
+      "file": "backdrop-solar.webp",
+      "bytes": 337386,
+      "width": 1672,
+      "height": 941,
+      "alpha": false
+    },
+    {
+      "file": "cherry-assistant-short.webp",
+      "bytes": 49766,
+      "width": 720,
+      "height": 480,
+      "alpha": false
+    },
+    {
+      "file": "cherry-hero.webp",
+      "bytes": 159310,
+      "width": 1400,
+      "height": 933,
+      "alpha": false
+    },
+    {
+      "file": "cherry-home-short.webp",
+      "bytes": 130820,
+      "width": 1920,
+      "height": 720,
+      "alpha": false
+    },
+    {
+      "file": "city-backdrop.webp",
+      "bytes": 222690,
+      "width": 1672,
+      "height": 941,
+      "alpha": false
+    },
+    {
+      "file": "cyrvor-brand.webp",
+      "bytes": 61134,
+      "width": 960,
+      "height": 360,
+      "alpha": false
+    },
+    {
+      "file": "portrait-cherry.webp",
+      "bytes": 82624,
+      "width": 385,
+      "height": 675,
+      "alpha": false
+    },
+    {
+      "file": "portrait-ghost.webp",
+      "bytes": 58886,
+      "width": 335,
+      "height": 675,
+      "alpha": false
+    },
+    {
+      "file": "portrait-nova.webp",
+      "bytes": 31354,
+      "width": 292,
+      "height": 365,
+      "alpha": false
+    },
+    {
+      "file": "portrait-violet.webp",
+      "bytes": 62048,
+      "width": 345,
+      "height": 610,
+      "alpha": false
+    },
+    {
+      "file": "team-banner.webp",
+      "bytes": 153848,
+      "width": 1400,
+      "height": 467,
+      "alpha": false
+    },
+    {
+      "file": "theme-aqua.webp",
+      "bytes": 21530,
+      "width": 480,
+      "height": 270,
+      "alpha": false
+    },
+    {
+      "file": "theme-aurora.webp",
+      "bytes": 36186,
+      "width": 480,
+      "height": 270,
+      "alpha": false
+    },
+    {
+      "file": "theme-cosmic.webp",
+      "bytes": 35182,
+      "width": 480,
+      "height": 270,
+      "alpha": false
+    },
+    {
+      "file": "theme-crimson.webp",
+      "bytes": 29530,
+      "width": 480,
+      "height": 270,
+      "alpha": false
+    },
+    {
+      "file": "theme-emerald.webp",
+      "bytes": 30272,
+      "width": 480,
+      "height": 270,
+      "alpha": false
+    },
+    {
+      "file": "theme-lunar.webp",
+      "bytes": 25660,
+      "width": 480,
+      "height": 270,
+      "alpha": false
+    },
+    {
+      "file": "theme-midnight.webp",
+      "bytes": 28734,
+      "width": 480,
+      "height": 270,
+      "alpha": false
+    },
+    {
+      "file": "theme-rose.webp",
+      "bytes": 37992,
+      "width": 480,
+      "height": 270,
+      "alpha": false
+    },
+    {
+      "file": "theme-silver.webp",
+      "bytes": 10170,
+      "width": 480,
+      "height": 270,
+      "alpha": false
+    },
+    {
+      "file": "theme-slate.webp",
+      "bytes": 28734,
+      "width": 480,
+      "height": 270,
+      "alpha": false
+    },
+    {
+      "file": "theme-solar.webp",
+      "bytes": 39064,
+      "width": 480,
+      "height": 270,
+      "alpha": false
+    },
+    {
+      "file": "theme-violet.webp",
+      "bytes": 35182,
+      "width": 480,
+      "height": 270,
+      "alpha": false
+    }
+  ],
+  "totalBytes": 3734928
+}

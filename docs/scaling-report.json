@@ -1,0 +1,81 @@
+{
+  "method": "Chromium force-device-scale-factor simulation. Host Windows display settings were not changed; this is not a physical Windows DPI test.",
+  "results": [
+    {
+      "scale": 1.25,
+      "geometry": {
+        "width": 1367,
+        "height": 770,
+        "dpr": 1.25,
+        "search": {
+          "x": 703.0875244140625,
+          "y": 263.625,
+          "width": 611.7000122070312,
+          "height": 48,
+          "top": 263.625,
+          "right": 1314.7875366210938,
+          "bottom": 311.625,
+          "left": 703.0875244140625
+        },
+        "shortcuts": {
+          "x": 703.0875244140625,
+          "y": 324.625,
+          "width": 611.7000122070312,
+          "height": 62.5,
+          "top": 324.625,
+          "right": 1314.7875366210938,
+          "bottom": 387.125,
+          "left": 703.0875244140625
+        }
+      },
+      "captured": {
+        "width": 1707,
+        "height": 960
+      },
+      "nativeBounds": {
+        "x": 236,
+        "y": 96,
+        "width": 803,
+        "height": 673
+      }
+    },
+    {
+      "scale": 1.5,
+      "geometry": {
+        "width": 1366,
+        "height": 768,
+        "dpr": 1.5,
+        "search": {
+          "x": 683.71875,
+          "y": 263.625,
+          "width": 644.2708740234375,
+          "height": 48,
+          "top": 263.625,
+          "right": 1327.9896240234375,
+          "bottom": 311.625,
+          "left": 683.71875
+        },
+        "shortcuts": {
+          "x": 683.71875,
+          "y": 324.625,
+          "width": 644.2708740234375,
+          "height": 62.5,
+          "top": 324.625,
+          "right": 1327.9896240234375,
+          "bottom": 387.125,
+          "left": 683.71875
+        }
+      },
+      "captured": {
+        "width": 2049,
+        "height": 1152
+      },
+      "nativeBounds": {
+        "x": 208,
+        "y": 96,
+        "width": 858,
+        "height": 672
+      }
+    }
+  ]
+}

@@ -1,0 +1,33 @@
+{
+  "schemaVersion": 4,
+  "collections": {
+    "notes": {
+      "count": 1,
+      "sha256": "4464c21a103ae2ef0888172005961c3e16c207cb99d4627e54e92c7563095575"
+    },
+    "postIts": {
+      "count": 0,
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    "reminders": {
+      "count": 0,
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    "calendarEvents": {
+      "count": 2,
+      "sha256": "60b32de96a06046d36a7febd08392cf4bd2c5dd0473c5388d7443183bac4bae8"
+    },
+    "bookmarks": {
+      "count": 0,
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    "todos": {
+      "count": 0,
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    "workspaces": {
+      "count": 2,
+      "sha256": "fdc12f3fe5d5a2883ce026180a319f78e2ecde8575fed595faa695c4eee11f98"
+    }
+  }
+}

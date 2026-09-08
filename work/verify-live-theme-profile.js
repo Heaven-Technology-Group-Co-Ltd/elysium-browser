@@ -1,0 +1,10 @@
+const fs=require('node:fs'),path=require('node:path'),crypto=require('node:crypto'),assert=require('node:assert/strict');
+const file=path.join(process.env.APPDATA,'Cherrywebbrowser','cherry-data.json');
+const data=JSON.parse(fs.readFileSync(file,'utf8'));
+const collections=['notes','postIts','reminders','calendarEvents','bookmarks','todos','workspaces'];
+const digest=value=>crypto.createHash('sha256').update(JSON.stringify(value)).digest('hex');
+const snapshot={schemaVersion:data.schemaVersion,collections:Object.fromEntries(collections.map(key=>[key,{count:data[key]?.length||0,sha256:digest(data[key])}]))};
+const snapshotFile=path.resolve('work/live-theme-profile-before.json');
+if(process.argv[2]==='before')fs.writeFileSync(snapshotFile,JSON.stringify(snapshot,null,2));
+else assert.deepEqual(snapshot,JSON.parse(fs.readFileSync(snapshotFile,'utf8')));
+console.log(JSON.stringify({mode:process.argv[2],schemaVersion:snapshot.schemaVersion,counts:Object.fromEntries(collections.map(key=>[key,snapshot.collections[key].count])),unchanged:process.argv[2]==='after'}));

@@ -1,0 +1,8 @@
+{
+  "url": "https://www.whatismybrowser.com/",
+  "title": "What browser? My browser? Is my browser out of date?",
+  "version": "1.3.13",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.7977.76 Safari/537.36 CherryBrowserSystem/1.3.13",
+  "guestTextLength": 500,
+  "nativeCapture": "docs/screenshots/online-example.png"
+}

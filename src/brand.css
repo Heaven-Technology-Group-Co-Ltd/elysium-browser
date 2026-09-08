@@ -1,0 +1,31 @@
+/* The wordmark keeps Cherry's lettering; the theme owns its ink and accent. */
+.cherry-shell .brand{
+  display:flex;align-items:center;justify-content:space-between;gap:12px;
+  min-height:84px;padding:8px 7px 24px;-webkit-app-region:drag;
+}
+.cherry-shell .brand-signature{display:flex;flex-direction:column;align-items:flex-start;gap:5px;min-width:0;user-select:none}
+.cherry-shell .brand .brand-name{
+  display:block;margin:0;font-family:"Segoe UI Variable Display","Segoe UI",sans-serif;
+  font-size:35px;font-weight:750;line-height:1;letter-spacing:-.035em;color:var(--text);
+}
+.cherry-shell .brand .brand-name>span{color:var(--cyan)}
+.cherry-shell .brand .brand-caption{
+  display:block;padding-left:2px;font-family:"Segoe UI",sans-serif;
+  font-size:8px;font-weight:600;line-height:12px;letter-spacing:.28em;color:var(--muted);
+}
+.cherry-shell .brand .app-version{margin-left:5px;color:var(--cyan);font-weight:700;letter-spacing:.08em}
+.cherry-shell .brand>#compact-toggle{
+  margin:0;width:32px;height:32px;padding:7px;align-self:center;opacity:1;
+  border:1px solid var(--border);border-radius:9px;background:transparent;color:var(--muted);
+  -webkit-app-region:no-drag;transition:background 140ms,color 140ms,transform 140ms cubic-bezier(.23,1,.32,1);
+}
+.cherry-shell .brand>#compact-toggle svg{width:16px;height:16px;stroke-width:1.6}
+.cherry-shell .brand>#compact-toggle:hover{background:var(--raised);color:var(--text);border-color:var(--border)}
+.cherry-shell .brand>#compact-toggle:active{transform:scale(.97)}
+.cherry-shell .brand>#compact-toggle:focus-visible{outline:2px solid var(--cyan);outline-offset:3px;color:var(--text)}
+.cherry-shell[data-sidebar=compact] .brand{min-height:64px;padding:8px 0 24px;justify-content:center}
+.cherry-shell[data-sidebar=compact] .brand-signature{display:none}
+.cherry-shell[data-sidebar=compact] .brand>#compact-toggle{margin:0}
+@media(max-width:1366px){.cherry-shell .brand{gap:8px;padding-left:6px;padding-right:5px}.cherry-shell .brand .brand-name{font-size:32px}}
+@media(max-height:800px){.cherry-shell .brand{min-height:74px;padding-top:6px;padding-bottom:16px}.cherry-shell[data-sidebar=compact] .brand{min-height:58px;padding-top:6px;padding-bottom:20px}}
+@media(prefers-reduced-motion:reduce){.cherry-shell .brand>#compact-toggle{transition:none}.cherry-shell .brand>#compact-toggle:active{transform:none}}

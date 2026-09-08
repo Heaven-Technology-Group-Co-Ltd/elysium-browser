@@ -1,0 +1,21 @@
+{
+  "version": "1.3.7",
+  "runtime": "44.2.0",
+  "method": "Packaged or source Electron with real non-silent HTMLAudioElement inside WebContentsView; isolated test profile",
+  "packaged": true,
+  "events": [
+    true,
+    false,
+    true,
+    false
+  ],
+  "errors": [],
+  "checks": [
+    "audible true on play",
+    "audible false on pause",
+    "mute and unmute native webContents",
+    "background audio tab retained",
+    "close while playing and continue browsing"
+  ],
+  "screenshot": "docs/screenshots/audio-error-fixed.png"
+}

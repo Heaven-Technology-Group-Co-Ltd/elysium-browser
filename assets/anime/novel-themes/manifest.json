@@ -1,0 +1,78 @@
+{
+  "method": "Twelve independently generated illustrations using built-in ImageGen, with BeezaChat character references; deterministic WebP resizing only.",
+  "files": [
+    {
+      "id": "roseglass",
+      "wallpaper": "roseglass.webp",
+      "thumbnail": "roseglass-thumb.webp",
+      "bytes": 223928
+    },
+    {
+      "id": "starlibrary",
+      "wallpaper": "starlibrary.webp",
+      "thumbnail": "starlibrary-thumb.webp",
+      "bytes": 244108
+    },
+    {
+      "id": "titanwater",
+      "wallpaper": "titanwater.webp",
+      "thumbnail": "titanwater-thumb.webp",
+      "bytes": 203884
+    },
+    {
+      "id": "sunrail",
+      "wallpaper": "sunrail.webp",
+      "thumbnail": "sunrail-thumb.webp",
+      "bytes": 188910
+    },
+    {
+      "id": "jadeatelier",
+      "wallpaper": "jadeatelier.webp",
+      "thumbnail": "jadeatelier-thumb.webp",
+      "bytes": 253850
+    },
+    {
+      "id": "ivoryorbit",
+      "wallpaper": "ivoryorbit.webp",
+      "thumbnail": "ivoryorbit-thumb.webp",
+      "bytes": 266330
+    },
+    {
+      "id": "emberforge",
+      "wallpaper": "emberforge.webp",
+      "thumbnail": "emberforge-thumb.webp",
+      "bytes": 231440
+    },
+    {
+      "id": "lilacdream",
+      "wallpaper": "lilacdream.webp",
+      "thumbnail": "lilacdream-thumb.webp",
+      "bytes": 284184
+    },
+    {
+      "id": "cobaltflight",
+      "wallpaper": "cobaltflight.webp",
+      "thumbnail": "cobaltflight-thumb.webp",
+      "bytes": 240808
+    },
+    {
+      "id": "midnightmono",
+      "wallpaper": "midnightmono.webp",
+      "thumbnail": "midnightmono-thumb.webp",
+      "bytes": 130390
+    },
+    {
+      "id": "scarletpulse",
+      "wallpaper": "scarletpulse.webp",
+      "thumbnail": "scarletpulse-thumb.webp",
+      "bytes": 233666
+    },
+    {
+      "id": "honeycloud",
+      "wallpaper": "honeycloud.webp",
+      "thumbnail": "honeycloud-thumb.webp",
+      "bytes": 192530
+    }
+  ],
+  "totalBytes": 2694028
+}

@@ -1,0 +1,13 @@
+{
+  "method": "Live Open-Meteo adapter check; Bangkok is a test city, not inferred device location",
+  "result": {
+    "city": "กรุงเทพมหานคร",
+    "latitude": 13.75398,
+    "longitude": 100.50144,
+    "temperature": 27.1,
+    "code": 3,
+    "time": "2026-09-06T21:00",
+    "fetchedAt": 1788703788944,
+    "provider": "Open-Meteo"
+  }
+}
