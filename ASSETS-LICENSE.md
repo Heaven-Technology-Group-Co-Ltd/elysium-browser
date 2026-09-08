@@ -12,7 +12,7 @@ licensed under Apache-2.0:
 - Artwork and visual assets in `assets/`
 - Reference artwork in the handoff folders
 
-Copyright © 2026 Paddman / CYRVOR. All rights reserved.
+Copyright © 2026 Heaven Technology Group Co., Ltd. and its development team. All rights reserved.
 
 No permission is granted to copy, modify, redistribute, or use these
 materials as branding without prior written permission.
