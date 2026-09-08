@@ -4,7 +4,7 @@ const http = require('node:http');
 const path = require('node:path');
 const { pathToFileURL } = require('node:url');
 const { randomUUID } = require('node:crypto');
-const { BrowserStore, resolveAddress, isWebURL, INTERNAL_PAGES, SEARCH_ENGINES, POST_IT_COLORS, SCHEMA_VERSION, FINISHED_DOWNLOAD_STATES, sanitizeTheme, computeLayout } = require('./core');
+const { BrowserStore, resolveAddress, isWebURL, INTERNAL_PAGES, SEARCH_ENGINES, POST_IT_COLORS, SCHEMA_VERSION, FINISHED_DOWNLOAD_STATES, filterExistingDownloads, sanitizeTheme, computeLayout } = require('./core');
 const { checkProvider, requestAI, getWeather, providerURL } = require('./providers');
 const { createOAuthAttempt, exchangeAuthorizationCode, oauthFingerprint, refreshAccessToken, safeStateEqual, validateOAuthConfig } = require('./oauth');
 const { EXTRACT_PAGE, CAN_SUSPEND } = require('./page-extraction');
@@ -57,6 +57,7 @@ let privateSession;
 let tabs = [];
 let activeId;
 let downloads = [];
+let lastDownloadPrune = 0;
 let publishTimer;
 let closing = false;
 const grantedPermissions = new Set();
@@ -81,7 +82,18 @@ const htmlFullscreenCSSKeys = new Map();
 
 function activeTab() { return tabs.find(tab => tab.id === activeId); }
 function workspaceTabs() { return tabs.filter(tab => tab.workspaceId === store.data.activeWorkspace); }
+// Drop persisted download records whose file was deleted/renamed outside the
+// app so the list mirrors the filesystem. Live downloads are never pruned.
+function pruneMissingDownloads() {
+  const live = downloads.filter(d => d.item);
+  const kept = filterExistingDownloads(downloads.filter(d => !d.item));
+  if (live.length + kept.length === downloads.length) return;
+  downloads = [...live, ...kept];
+  store.data.downloads = kept.map(({ item, paused, canResume, ...record }) => record);
+  store.save();
+}
 function snapshot() {
+  if (store && Date.now() - lastDownloadPrune > 30000) { lastDownloadPrune = Date.now(); pruneMissingDownloads(); }
   const oauth = oauthSummary();
   return {
     tabs: tabs.map(({ view, navigation, ...tab }) => ({
@@ -1240,6 +1252,7 @@ else {
     store = new BrowserStore(app.getPath('userData'));
     // Restore the persisted download history (finished, non-private) into the session list.
     downloads = store.data.downloads.map(record => ({ ...record, paused: false, canResume: false }));
+    pruneMissingDownloads();
     Menu.setApplicationMenu(null);
     browserSession = session.fromPartition('persist:cherry-web');
     privateSession = session.fromPartition(`cherry-private-${randomUUID()}`);

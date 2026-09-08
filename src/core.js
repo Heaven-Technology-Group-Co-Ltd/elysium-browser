@@ -14,6 +14,17 @@ const POST_IT_COLORS = ['yellow', 'blue', 'pink', 'mint', 'purple'];
 const SCHEMA_VERSION = 5;
 const FINISHED_DOWNLOAD_STATES = ['completed', 'interrupted'];
 
+// Drop persisted download records whose file no longer exists on disk
+// (deleted/renamed/moved outside the app), so the list mirrors the filesystem.
+function filterExistingDownloads(records) {
+  if (!Array.isArray(records)) return [];
+  return records.filter(record => {
+    if (!record || typeof record.path !== 'string' || !record.path) return false;
+    try { return fs.existsSync(record.path); }
+    catch { return false; }
+  });
+}
+
 function isWebURL(value) {
   try { return ['https:', 'http:'].includes(new URL(value).protocol); }
   catch { return false; }
@@ -232,4 +243,4 @@ function computeLayout(width, height, { compact = false, panel = false, split = 
   return { sidebar, panelWidth, area, left: { ...area, y: top + splitHeader, height: Math.max(0, area.height - splitHeader), width: leftWidth }, right: { x: sidebar + leftWidth + divider, y: top + splitHeader, width: Math.max(0, area.width - leftWidth - divider), height: Math.max(0, area.height - splitHeader) }, dividerX: sidebar + leftWidth };
 }
 
-module.exports = { BrowserStore, resolveAddress, isWebURL, INTERNAL_PAGES, SEARCH_ENGINES, POST_IT_COLORS, SCHEMA_VERSION, FINISHED_DOWNLOAD_STATES, sanitizeTheme, computeLayout };
+module.exports = { BrowserStore, resolveAddress, isWebURL, INTERNAL_PAGES, SEARCH_ENGINES, POST_IT_COLORS, SCHEMA_VERSION, FINISHED_DOWNLOAD_STATES, filterExistingDownloads, sanitizeTheme, computeLayout };

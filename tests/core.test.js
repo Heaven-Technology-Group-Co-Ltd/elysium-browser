@@ -4,7 +4,7 @@ const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
 const { resolveAddress, isWebURL, BrowserStore } = require('../src/core');
-const { computeLayout, sanitizeTheme } = require('../src/core');
+const { computeLayout, sanitizeTheme, filterExistingDownloads } = require('../src/core');
 const { providerURL } = require('../src/providers');
 const { createOAuthAttempt, normalizeToken, oauthFingerprint, safeStateEqual, secureOAuthURL } = require('../src/oauth');
 
@@ -101,6 +101,23 @@ test('finished non-private downloads persist across restarts and unsafe records 
   assert.equal(restored.data.downloads[0].path, 'C:/dl/report.pdf');
   restored.save();
   assert.deepEqual(new BrowserStore(directory).data.downloads.map(d => d.id), ['done-1']);
+});
+
+test('download records with missing files are dropped so the list mirrors the filesystem', t => {
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'cherry-core-'));
+  t.after(() => removeTestDirectory(directory));
+  const kept = path.join(directory, 'kept.bin');
+  fs.writeFileSync(kept, 'data');
+  const records = [
+    { id: 'kept', filename: 'kept.bin', path: kept },
+    { id: 'gone', filename: 'gone.bin', path: path.join(directory, 'gone.bin') },
+    { id: 'no-path', filename: 'x.bin', path: '' },
+    null,
+  ];
+  assert.deepEqual(filterExistingDownloads(records).map(d => d.id), ['kept']);
+  fs.rmSync(kept);
+  assert.deepEqual(filterExistingDownloads(records), []);
+  assert.deepEqual(filterExistingDownloads(null), []);
 });
 
 test('post-its and reminders persist across restarts and sanitize unsafe fields', t => {

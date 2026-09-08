@@ -17,7 +17,7 @@ npm start
 - Calendar แจ้งผ่าน Windows ขณะเปิด Cherry ตามเวลาเครื่อง เลือกไม่เตือน/เมื่อถึงเวลา/ก่อน 5, 15, 30, 60 นาทีหรือ 1 วัน นัดหมายทั้งวันนับเวลาเตือนจาก 09:00 ของวันเริ่มต้น เมื่อเปิดใหม่จะเตือนรายการที่ถึงเวลาและยังไม่สิ้นสุด ไม่เตือนซ้ำรายการเดิม ข้อมูลเดิมสำรองเป็น `cherry-data.json.before-schema-5` ก่อนย้ายเป็น schema 5
 - Tabs, URL/search ไทย/อังกฤษ, back/forward/reload/stop, favicon/title, drag reorder, pin/mute/reopen, private tabs และ session restore
 - เว็บไซต์ได้รับ User-Agent `CherryBrowserSystem/<version>` โดยไม่มี `Electron/<version>` และยังมี Chrome compatibility token เว็บตรวจเบราว์เซอร์ที่ยังไม่รู้จัก Cherry อาจจัดกลุ่มเป็น Chrome แต่ดูชื่อ Cherry ได้ในรายละเอียด User-Agent
-- Bookmarks พร้อมโฟลเดอร์, history พร้อมค้นหา/ล้างตามช่วงเวลา, downloads พร้อมปลายทาง/progress/pause/resume/cancel จริง (resume ขึ้นกับ runtime/เซิร์ฟเวอร์) รายการที่เสร็จในโหมดปกติจะอยู่ในเครื่องข้ามการเปิดแอป (schema 5) ส่วน Private ไม่ถูกเก็บ
+- Bookmarks พร้อมโฟลเดอร์, history พร้อมค้นหา/ล้างตามช่วงเวลา, downloads พร้อมปลายทาง/progress/pause/resume/cancel จริง (resume ขึ้นกับ runtime/เซิร์ฟเวอร์) รายการที่เสร็จในโหมดปกติจะอยู่ในเครื่องข้ามการเปิดแอป (schema 5) และถูกลบออกจากรายการเมื่อไฟล์ในเครื่องหายไป (ลบ/ย้าย/เปลี่ยนชื่อข้างนอก) ส่วน Private ไม่ถูกเก็บ
 - Workspaces แยกกลุ่มแท็บ โดย cookies/session ปกติยังใช้ร่วมกัน
 - Split View สองเว็บจริง คลิกเว็บหรือหัว L/R เพื่อเลือกด้าน active ปรับสัดส่วนได้ แผงด้านข้างลดพื้นที่เว็บจริง
 - Command palette ค้นหาคำสั่ง/แท็บ/บุ๊กมาร์กด้วย Ctrl+K
