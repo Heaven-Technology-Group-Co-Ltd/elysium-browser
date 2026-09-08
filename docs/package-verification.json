@@ -1,6 +1,6 @@
 {
-  "version": "1.3.13",
-  "buildDirectory": "release-browser-identity",
+  "version": "1.4.0",
+  "buildDirectory": "release",
   "checkedFiles": [
     "src/brand.css",
     "src/calendar-ui.js",
@@ -19,6 +19,7 @@
     "src/styles.css",
     "src/theme-studio.js",
     "src/themes.js",
+    "src/updater.js",
     "src/window-drag.css",
     "src/window-drag.js",
     "assets/anime/avatar-cherry-short.webp",
@@ -83,16 +84,17 @@
     "assets/anime/theme-slate.webp",
     "assets/anime/theme-solar.webp",
     "assets/anime/theme-violet.webp",
-    "assets/cherry-anime-icon-source.png",
-    "assets/cherry-anime-icon.png",
-    "assets/cherry.ico",
-    "assets/cherry.png"
+    "assets/elysium-anime-icon-source.png",
+    "assets/elysium-anime-icon.png",
+    "assets/elysium-icon-source.png",
+    "assets/elysium.ico",
+    "assets/elysium.png"
   ],
-  "archiveSHA256": "71182a02c368ed5e4489e5012da84ddc6b30d032b3ac755488b0b8f9807ed94d",
+  "archiveSHA256": "26ca74b91243d5e7572ed10595f862574bba3ab2a26c653ae1efa98a41221bac",
   "portable": {
-    "file": "release-browser-identity/Cherrywebbrowser-1.3.13-portable.exe",
-    "bytes": 111288819,
-    "sha256": "484c5b772bab23cc8cdb5634f3eec4bfd78a4df69446a08d7898e4f1e6b46e94"
+    "file": "release/elysium-browser-1.4.0-portable.exe",
+    "bytes": 113616725,
+    "sha256": "3cef0af34e060d1f55290c5de2a6a1920fb968d951758d430872010bf009994c"
   },
   "sourceAndPackagedAssetsIdentical": true
 }
