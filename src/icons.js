@@ -1,5 +1,5 @@
 // One line-icon family. Branding is a wordmark, with no fruit or security emblems.
-window.cherryIcons = {
+window.elysiumIcons = {
  home:'<path d="m3 10 9-7 9 7v10H15v-7H9v7H3Z"/>',
  grid:'<rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/>',
  bookmark:'<path d="M6 3h12v18l-6-4-6 4Z"/>', history:'<path d="M3 11a9 9 0 1 1 2 7M3 4v7h7m2-4v6l4 2"/>',

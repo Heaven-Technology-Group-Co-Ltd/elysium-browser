@@ -11,7 +11,7 @@ const { createOAuthAttempt, normalizeToken, oauthFingerprint, safeStateEqual, se
 function removeTestDirectory(directory) {
   const resolved = path.resolve(directory);
   assert.equal(path.dirname(resolved), path.resolve(os.tmpdir()));
-  assert.ok(path.basename(resolved).startsWith('cherry-core-'));
+  assert.ok(path.basename(resolved).startsWith('elysium-core-'));
   fs.rmSync(resolved, { recursive: true, force: true });
 }
 
@@ -23,19 +23,20 @@ test('resolves web addresses, local servers, international domains and Thai quer
   assert.equal(resolveAddress('https://example.com/a?q=b#c'), 'https://example.com/a?q=b#c');
   assert.equal(resolveAddress('แมวน่ารัก', 'duckduckgo'), `https://duckduckgo.com/?q=${encodeURIComponent('แมวน่ารัก')}`);
   assert.match(resolveAddress('ไทย.ไทย'), /^https:\/\/xn--/);
-  assert.equal(resolveAddress(''), 'cherry://home');
-  assert.equal(resolveAddress('cherry://history'), 'cherry://history');
+  assert.equal(resolveAddress(''), 'elysium://home');
+  assert.equal(resolveAddress('elysium://history'), 'elysium://history');
+  assert.equal(resolveAddress('cherry://calendar'), 'elysium://calendar');
 });
 
 test('rejects executable and local-file schemes', () => {
-  for (const url of ['javascript:alert(1)', 'data:text/html,test', 'file:///C:/secret', 'ftp://example.com', 'cherry://invalid', 'vbscript:test']) {
+  for (const url of ['javascript:alert(1)', 'data:text/html,test', 'file:///C:/secret', 'ftp://example.com', 'elysium://invalid', 'vbscript:test']) {
     assert.throws(() => resolveAddress(url));
     assert.equal(isWebURL(url), false);
   }
 });
 
 test('bookmarks, settings and history persist across restarts; recent duplicate visits merge', t => {
-  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'cherry-core-'));
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'elysium-core-'));
   t.after(() => removeTestDirectory(directory));
   const store = new BrowserStore(directory);
   assert.equal(store.toggleBookmark('https://example.com/', 'ตัวอย่าง'), true);
@@ -53,22 +54,22 @@ test('bookmarks, settings and history persist across restarts; recent duplicate 
 });
 
 test('invalid saved data is sanitized and corrupt files are preserved', t => {
-  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'cherry-core-'));
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'elysium-core-'));
   t.after(() => removeTestDirectory(directory));
-  fs.writeFileSync(path.join(directory, 'cherry-data.json'), JSON.stringify({ bookmarks: [null, { id: 'bad', url: 'javascript:test', title: 'bad' }], savedTabs: ['file:///secret', 'https://example.com/'], settings: { searchEngine: 'invalid' } }));
+  fs.writeFileSync(path.join(directory, 'elysium-data.json'), JSON.stringify({ bookmarks: [null, { id: 'bad', url: 'javascript:test', title: 'bad' }], savedTabs: ['file:///secret', 'https://example.com/'], settings: { searchEngine: 'invalid' } }));
   const sanitized = new BrowserStore(directory);
   assert.deepEqual(sanitized.data.bookmarks, []);
   assert.deepEqual(sanitized.data.savedTabs, ['https://example.com/']);
   assert.equal(sanitized.data.settings.searchEngine, 'google');
-  fs.writeFileSync(path.join(directory, 'cherry-data.json'), '{broken');
+  fs.writeFileSync(path.join(directory, 'elysium-data.json'), '{broken');
   assert.deepEqual(new BrowserStore(directory).data.history, []);
   assert.ok(fs.readdirSync(directory).some(name => name.includes('.backup-')));
 });
 
 test('schema migration preserves old profile, bookmarks and sessions without private tabs', t => {
-  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'cherry-core-'));
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'elysium-core-'));
   t.after(() => removeTestDirectory(directory));
-  const file = path.join(directory, 'cherry-data.json');
+  const file = path.join(directory, 'elysium-data.json');
   const old = JSON.stringify({schemaVersion:4,bookmarks:[{id:'b',title:'เดิม',url:'https://example.com/',folder:'Reading'}],savedTabs:['https://example.com/'],settings:{restoreTabs:false,searchEngine:'bing'}});
   fs.writeFileSync(file,old);
   const migrated = new BrowserStore(directory);
@@ -84,10 +85,21 @@ test('schema migration preserves old profile, bookmarks and sessions without pri
   const unknown=new BrowserStore(directory);unknown.save();assert.equal(fs.readFileSync(file,'utf8'),future);assert.ok(unknown.writeError);
 });
 
-test('finished non-private downloads persist across restarts and unsafe records are dropped', t => {
-  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'cherry-core-'));
+test('legacy Cherry profile file is adopted and saved under the new name', t => {
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'elysium-core-'));
   t.after(() => removeTestDirectory(directory));
-  const file = path.join(directory, 'cherry-data.json');
+  fs.writeFileSync(path.join(directory, 'cherry-data.json'), JSON.stringify({ schemaVersion: 5, bookmarks: [{ id: 'b', title: 'เดิม', url: 'https://example.com/' }], sessionTabs: [{ id: 's', title: 'เก่า', url: 'cherry://calendar', workspaceId: 'personal' }] }));
+  const store = new BrowserStore(directory);
+  assert.equal(store.data.bookmarks[0].title, 'เดิม');
+  assert.equal(store.data.sessionTabs[0].url, 'elysium://calendar');
+  store.save();
+  assert.ok(fs.existsSync(path.join(directory, 'elysium-data.json')));
+});
+
+test('finished non-private downloads persist across restarts and unsafe records are dropped', t => {
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'elysium-core-'));
+  t.after(() => removeTestDirectory(directory));
+  const file = path.join(directory, 'elysium-data.json');
   fs.writeFileSync(file, JSON.stringify({ schemaVersion: 5, downloads: [
     { id: 'done-1', filename: 'report.pdf', url: 'https://example.com/report.pdf', path: 'C:/dl/report.pdf', received: 100, total: 100, state: 'completed', createdAt: 1 },
     { id: 'bad-url', filename: 'x', url: 'javascript:evil', path: '', state: 'completed', createdAt: 1 },
@@ -104,7 +116,7 @@ test('finished non-private downloads persist across restarts and unsafe records 
 });
 
 test('download records with missing files are dropped so the list mirrors the filesystem', t => {
-  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'cherry-core-'));
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'elysium-core-'));
   t.after(() => removeTestDirectory(directory));
   const kept = path.join(directory, 'kept.bin');
   fs.writeFileSync(kept, 'data');
@@ -121,7 +133,7 @@ test('download records with missing files are dropped so the list mirrors the fi
 });
 
 test('post-its and reminders persist across restarts and sanitize unsafe fields', t => {
-  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'cherry-core-'));
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'elysium-core-'));
   t.after(() => removeTestDirectory(directory));
   const store = new BrowserStore(directory);
   const dueAt = Date.now() + 60000;
@@ -132,7 +144,7 @@ test('post-its and reminders persist across restarts and sanitize unsafe fields'
   assert.deepEqual(restored.data.postIts[0],{id:'post-1',title:'จำไว้',body:'ข้อความบนบอร์ด',color:'pink',pinned:true,createdAt:1,updatedAt:2});
   assert.deepEqual(restored.data.reminders[0],{id:'reminder-1',title:'ส่งงาน',details:'ก่อนประชุม',dueAt,done:false,notifiedAt:0,createdAt:1,updatedAt:2});
 
-  const file = path.join(directory, 'cherry-data.json');
+  const file = path.join(directory, 'elysium-data.json');
   fs.writeFileSync(file,JSON.stringify({schemaVersion:3,postIts:[{id:'post-2',title:'x',body:'y',color:'<script>'}],reminders:[{id:'bad',title:'bad',dueAt:'not-a-date'}]}));
   const sanitized = new BrowserStore(directory);
   assert.equal(sanitized.data.postIts[0].color,'yellow');
@@ -164,12 +176,12 @@ test('OAuth uses authorization-code PKCE, loopback callbacks and safe endpoints'
   const config = {
     provider: 'oauth-openai-compatible', endpoint: 'https://ai.example/v1',
     oauthAuthorizationEndpoint: 'https://login.example/authorize', oauthTokenEndpoint: 'https://login.example/token',
-    oauthClientId: 'cherry-public-client', oauthScopes: 'openid  profile offline_access',
+    oauthClientId: 'elysium-public-client', oauthScopes: 'openid  profile offline_access',
   };
   const attempt = createOAuthAttempt(config, 'http://127.0.0.1:49152/oauth/callback');
   const authorize = new URL(attempt.authorizationURL);
   assert.equal(authorize.searchParams.get('response_type'), 'code');
-  assert.equal(authorize.searchParams.get('client_id'), 'cherry-public-client');
+  assert.equal(authorize.searchParams.get('client_id'), 'elysium-public-client');
   assert.equal(authorize.searchParams.get('code_challenge_method'), 'S256');
   assert.match(authorize.searchParams.get('code_challenge'), /^[A-Za-z0-9_-]{43}$/);
   assert.equal(authorize.searchParams.get('scope'), 'openid profile offline_access');

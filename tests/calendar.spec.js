@@ -5,20 +5,20 @@ const os = require('node:os');
 const { dateKey } = require('../src/calendar');
 let app, page, profile, errors;
 async function launch() {
-  app = await electron.launch({ ...(process.env.CHERRY_EXECUTABLE ? { executablePath: process.env.CHERRY_EXECUTABLE, args: [] } : { args: [path.resolve('.')] }), env: { ...process.env, CHERRY_TEST_PROFILE: profile } });
+  app = await electron.launch({ ...(process.env.ELYSIUM_EXECUTABLE ? { executablePath: process.env.ELYSIUM_EXECUTABLE, args: [] } : { args: [path.resolve('.')] }), env: { ...process.env, ELYSIUM_TEST_PROFILE: profile } });
   await app.firstWindow();
   await expect.poll(() => app.windows().some(p => p.url().endsWith('/index.html'))).toBe(true);
   page = app.windows().find(p => p.url().endsWith('/index.html'));
   page.on('pageerror', error => errors.push(error.message));
   await expect(page.locator('#tabs .tab').first()).toBeVisible();
 }
-const state = () => page.evaluate(() => window.cherry.getState());
-const call = (action, payload) => page.evaluate(([a, p]) => window.cherry.command(a, p), [action, payload]);
+const state = () => page.evaluate(() => window.elysium.getState());
+const call = (action, payload) => page.evaluate(([a, p]) => window.elysium.command(a, p), [action, payload]);
 const field = name => page.locator(`#modal-form [name="${name}"]`);
 async function openCalendar() { await page.locator('.navigation [data-page="calendar"]').click(); await expect(page.locator('.calendar-grid')).toBeVisible(); }
 async function newEvent() { await page.locator('.calendar-heading [data-calendar-action="new"]').click(); await expect(page.locator('#form-dialog')).toBeVisible(); }
 async function save() { await page.locator('#confirm-accept').click(); await expect(page.locator('#form-dialog')).not.toBeVisible(); }
-test.beforeEach(async () => { profile = fs.mkdtempSync(path.join(os.tmpdir(), 'cherry-calendar-e2e-')); errors = []; await launch(); });
+test.beforeEach(async () => { profile = fs.mkdtempSync(path.join(os.tmpdir(), 'elysium-calendar-e2e-')); errors = []; await launch(); });
 test.afterEach(async () => { if (app) { await app.close(); app = null; } expect(errors).toEqual([]); });
 
 test('local Calendar creates, validates, edits, searches, persists and deletes appointments', async () => {

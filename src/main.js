@@ -12,9 +12,9 @@ const { normalizeEvent, reminderAt, dueEvents } = require('./calendar');
 const { get: getNovelTheme } = require('./themes');
 const updater = require('./updater');
 
-if (process.env.CHERRY_TEST_PROFILE) app.setPath('userData', process.env.CHERRY_TEST_PROFILE);
-app.setName('Cherrywebbrowser');
-if (process.platform === 'win32') app.setAppUserModelId('com.cherry.webbrowser');
+if (process.env.ELYSIUM_TEST_PROFILE) app.setPath('userData', process.env.ELYSIUM_TEST_PROFILE);
+app.setName('elysium-browser');
+if (process.platform === 'win32') app.setAppUserModelId('com.elysium.browser');
 const UI_FILE = path.join(__dirname, 'index.html');
 const UI_URL = pathToFileURL(UI_FILE).href;
 const YOUTUBE_FULLSCREEN_CSS = `
@@ -48,8 +48,8 @@ html:fullscreen #movie_player, html:-webkit-full-screen #movie_player {
 }
 `;
 const PAGE_TITLES = { home: 'New Tab', bookmarks: 'บุ๊กมาร์ก', history: 'ประวัติการเข้าชม', downloads: 'ดาวน์โหลด', settings: 'การตั้งค่า', workspaces: 'My Workspace', themes: 'Theme Studio', notes: 'Notes & Clip', memory: 'Memory Saver', calendar: 'Calendar · ปฏิทิน' };
-const CHERRY_BROWSER_NAME = 'Cherry Browser System';
-const cherryUserAgent = () => `Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/${process.versions.chrome} Safari/537.36 CherryBrowserSystem/${app.getVersion()}`;
+const ELYSIUM_BROWSER_NAME = 'elysium-browser';
+const elysiumUserAgent = () => `Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/${process.versions.chrome} Safari/537.36 elysium-browser/${app.getVersion()}`;
 let win;
 let store;
 let browserSession;
@@ -113,7 +113,7 @@ function snapshot() {
     ui: { ...ui, htmlFullscreen: !!htmlFullscreenTabId, bounds: lastLayout }, reader, aiPreview, aiResult, aiBusy, weather, providerStatus,
     customBackground: store.data.customBackground ? pathToFileURL(path.join(app.getPath('userData'), 'themes', store.data.customBackground)).href : '',
     downloads: downloads.map(({ item, ...download }) => download),
-    browserName: CHERRY_BROWSER_NAME, version: app.getVersion(), runtime: process.versions.chrome,
+    browserName: ELYSIUM_BROWSER_NAME, version: app.getVersion(), runtime: process.versions.chrome,
     update: updater.status,
     storageError: store.writeError,
   };
@@ -123,7 +123,7 @@ function publish() {
   if (closing || publishTimer) return;
   publishTimer = setTimeout(() => {
     publishTimer = null;
-    if (win && !win.isDestroyed()) win.webContents.send('cherry:state', snapshot());
+    if (win && !win.isDestroyed()) win.webContents.send('elysium:state', snapshot());
   }, 20);
 }
 
@@ -169,8 +169,8 @@ function cancelHtmlFullscreenLayout() {
 function removeHtmlFullscreenCSS(contents) {
   if (!contents || contents.isDestroyed()) return;
   contents.executeJavaScript(`(() => {
-    if (typeof window.__cherryYoutubeFullscreenCleanup === 'function') window.__cherryYoutubeFullscreenCleanup();
-    delete window.__cherryYoutubeFullscreenCleanup;
+    if (typeof window.__elysiumYoutubeFullscreenCleanup === 'function') window.__elysiumYoutubeFullscreenCleanup();
+    delete window.__elysiumYoutubeFullscreenCleanup;
   })()`).catch(() => {});
   const key = htmlFullscreenCSSKeys.get(contents.id);
   htmlFullscreenCSSKeys.delete(contents.id);
@@ -191,7 +191,7 @@ function applyHtmlFullscreenCSS(contents) {
       document.exitFullscreen().catch(() => {});
     };
     document.addEventListener('click', exitFromButton, true);
-    window.__cherryYoutubeFullscreenCleanup = () => document.removeEventListener('click', exitFromButton, true);
+    window.__elysiumYoutubeFullscreenCleanup = () => document.removeEventListener('click', exitFromButton, true);
   })()`).catch(() => {});
   contents.insertCSS(YOUTUBE_FULLSCREEN_CSS, { cssOrigin: 'user' }).then(key => {
     if (contents.isDestroyed() || htmlFullscreenTabId !== tabs.find(tab => tab.view?.webContents === contents)?.id) {
@@ -243,7 +243,7 @@ function saveTabs() {
 function focusAddress() {
   exitHtmlFullscreen();
   win.webContents.focus();
-  win.webContents.send('cherry:focus-address');
+  win.webContents.send('elysium:focus-address');
 }
 
 function attachShortcuts(contents) {
@@ -255,7 +255,7 @@ function attachShortcuts(contents) {
     if (ctrl && key === 'l') focusAddress();
     else if (ctrl && key === 't' && input.shift) reopenTab();
     else if (ctrl && key === 't') { createTab(); focusAddress(); }
-    else if (ctrl && key === 'k') { exitHtmlFullscreen(); ui.overlay = true; layout(); publish(); win.webContents.focus(); win.webContents.send('cherry:palette'); }
+    else if (ctrl && key === 'k') { exitHtmlFullscreen(); ui.overlay = true; layout(); publish(); win.webContents.focus(); win.webContents.send('elysium:palette'); }
     else if (ctrl && key === 'w') closeTab(activeId);
     else if (ctrl && key === 'tab') {
       const currentTabs = workspaceTabs();
@@ -413,7 +413,7 @@ function load(tab, url) {
   tab.edited = false;
   tab.error = null;
   tab.url = url;
-  if (url.startsWith('cherry://')) {
+  if (url.startsWith('elysium://')) {
     if (htmlFullscreenTabId === tab.id) exitHtmlFullscreen();
     if (ui.split?.includes(tab.id)) ui.split = null;
     if (tab.view) {
@@ -421,7 +421,7 @@ function load(tab, url) {
       tab.view.webContents.close();
       tab.view = null;
     }
-    tab.title = PAGE_TITLES[url.slice(9)] || PAGE_TITLES.home;
+    tab.title = PAGE_TITLES[url.slice('elysium://'.length)] || PAGE_TITLES.home;
     tab.audible = false;
     tab.loading = false;
   } else {
@@ -440,7 +440,7 @@ function load(tab, url) {
   publish();
 }
 
-function createTab(url = 'cherry://home', options = {}) {
+function createTab(url = 'elysium://home', options = {}) {
   const tab = { id: options.id || randomUUID(), url, title: options.title || 'New Tab', workspaceId: options.workspaceId || store.data.activeWorkspace, private: options.private ?? activeTab()?.private ?? false, pinned: !!options.pinned, muted: false, audible: false, autoSuspend: !!options.autoSuspend, suspended: false, lastActive: Date.now(), edited: false, loading: false, error: null, view: null, favicon: '' };
   tabs.push(tab);
   activeId = tab.id;
@@ -479,7 +479,7 @@ function closeTab(id) {
   if (ui.split?.includes(id)) ui.split = null;
   if (!tab.private) { const { view, navigation, ...entry } = tab; closedTabs.unshift(entry); closedTabs.splice(30); }
   if (tab.view) { win.contentView.removeChildView(tab.view); tab.view.webContents.close(); }
-  if (!workspaceTabs().length) createTab('cherry://home', { private: false });
+  if (!workspaceTabs().length) createTab('elysium://home', { private: false });
   else if (id === activeId) activate(workspaceTabs().at(-1).id);
   if (tab.private && !tabs.some(t => t.private)) {
     const previousSession = privateSession;
@@ -496,9 +496,9 @@ function closeTab(id) {
 
 function openInternal(page) {
   if (!INTERNAL_PAGES.includes(page)) return;
-  const existing = workspaceTabs().find(tab => tab.url === `cherry://${page}` && tab.private === !!activeTab()?.private);
+  const existing = workspaceTabs().find(tab => tab.url === `elysium://${page}` && tab.private === !!activeTab()?.private);
   if (existing) activate(existing.id);
-  else createTab(`cherry://${page}`);
+  else createTab(`elysium://${page}`);
 }
 
 function go(direction) {
@@ -578,7 +578,7 @@ async function aiCredential(config = store.data.settings.ai) {
 function oauthPage(success, message) {
   const title = success ? 'เชื่อมบัญชีสำเร็จ' : 'เชื่อมบัญชีไม่สำเร็จ';
   const color = success ? '#71e3bd' : '#ff8b9b';
-  return `<!doctype html><html lang="th"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'"><title>${title}</title><style>body{margin:0;background:#071122;color:#e6edff;font:16px/1.7 system-ui;display:grid;place-items:center;min-height:100vh}.card{max-width:520px;margin:24px;padding:36px;border:1px solid #5477aa;border-radius:18px;background:#101e35;box-shadow:0 22px 70px #0008}h1{color:${color};font-size:25px}p{color:#b8c8e5}</style></head><body><main class="card"><h1>${title}</h1><p>${message}</p><p>ปิดแท็บนี้แล้วกลับไปที่ Cherry ได้เลย</p></main></body></html>`;
+  return `<!doctype html><html lang="th"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'"><title>${title}</title><style>body{margin:0;background:#071122;color:#e6edff;font:16px/1.7 system-ui;display:grid;place-items:center;min-height:100vh}.card{max-width:520px;margin:24px;padding:36px;border:1px solid #5477aa;border-radius:18px;background:#101e35;box-shadow:0 22px 70px #0008}h1{color:${color};font-size:25px}p{color:#b8c8e5}</style></head><body><main class="card"><h1>${title}</h1><p>${message}</p><p>ปิดแท็บนี้แล้วกลับไปที่ elysium-browser ได้เลย</p></main></body></html>`;
 }
 
 async function startOAuthLogin() {
@@ -662,7 +662,7 @@ async function startOAuthLogin() {
     try {
       const token = await exchangeAuthorizationCode(config, attempt, code);
       response.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' });
-      response.end(oauthPage(true, 'บัญชีพร้อมใช้กับ Cherry AI แล้ว'));
+      response.end(oauthPage(true, 'บัญชีพร้อมใช้กับ elysium-browser AI แล้ว'));
       settle(null, token);
     } catch (error) {
       response.writeHead(502, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' });
@@ -721,9 +721,9 @@ async function suspendTab(id, confirmed = false) {
 function showReminderNotification(reminder) {
   if (!Notification.isSupported()) return;
   const notification = new Notification({
-    title: `เตือนจาก Cherry · ${reminder.title}`,
+    title: `เตือนจาก elysium-browser · ${reminder.title}`,
     body: reminder.details || `ถึงเวลาแล้ว · ${new Date(reminder.dueAt).toLocaleString('th-TH')}`,
-    icon: path.join(__dirname, '../assets/cherry.ico'),
+    icon: path.join(__dirname, '../assets/elysium.ico'),
     timeoutType: 'never',
   });
   notification.on('click', () => {
@@ -758,15 +758,15 @@ function checkCalendar(now = Date.now()) {
   for (const event of due) {
     if (Notification.isSupported()) {
       const notification = new Notification({
-        title: `Cherry Calendar · ${event.title}`,
+        title: `elysium-browser Calendar · ${event.title}`,
         body: [event.allDay ? `${event.startDate} · ทั้งวัน` : new Date(event.startAt).toLocaleString('th-TH'), event.location, event.details].filter(Boolean).join('\n'),
-        icon: path.join(__dirname, '../assets/cherry.ico'),
+        icon: path.join(__dirname, '../assets/elysium.ico'),
       });
       notification.on('click', () => {
         if (!win || win.isDestroyed()) return;
         if (win.isMinimized()) win.restore();
         win.show(); win.focus(); openInternal('calendar');
-        win.webContents.send('cherry:calendar-event', event.id);
+        win.webContents.send('elysium:calendar-event', event.id);
       });
       notification.show();
     }
@@ -854,7 +854,7 @@ async function command(action, payload) {
       if (index >= 0 && target >= 0 && tabs[index].workspaceId === tabs[target].workspaceId) { const [tab] = tabs.splice(index, 1); tabs.splice(tabs.findIndex(t => t.id === payload.beforeId), 0, tab); saveTabs(); } break;
     }
     case 'reopen-tab': reopenTab(); break;
-    case 'private-tab': createTab('cherry://home', { private: true }); break;
+    case 'private-tab': createTab('elysium://home', { private: true }); break;
     case 'workspace-save': {
       const name = String(payload.name || '').trim().slice(0, 60); if (!name) throw new Error('กรุณาตั้งชื่อ workspace');
       const color = /^#[0-9a-f]{6}$/i.test(payload.color) ? payload.color : '#2f6bff';
@@ -866,7 +866,7 @@ async function command(action, payload) {
     case 'workspace-switch': {
       if (!store.data.workspaces.some(w => w.id === payload)) throw new Error('ไม่พบ workspace');
       ui.split = null; store.data.activeWorkspace = payload;
-      if (workspaceTabs().length) activate(workspaceTabs()[0].id); else createTab('cherry://home', { private: false });
+      if (workspaceTabs().length) activate(workspaceTabs()[0].id); else createTab('elysium://home', { private: false });
       saveTabs(); break;
     }
     case 'workspace-remove': {
@@ -954,7 +954,7 @@ async function command(action, payload) {
       if (typeof payload.title !== 'string') throw new Error('รูปแบบการแจ้งเตือนไม่ถูกต้อง');
       const title = payload.title.trim().slice(0, 200);
       const dueAt = typeof payload.dueAt === 'number' ? payload.dueAt : Date.parse(payload.dueAt);
-      if (!title) throw new Error('ใส่หัวข้อที่ต้องการให้ Cherry เตือน');
+      if (!title) throw new Error('ใส่หัวข้อที่ต้องการให้ elysium-browser เตือน');
       if (!Number.isFinite(dueAt)) throw new Error('เลือกวันและเวลาแจ้งเตือน');
       const now = Date.now();
       let reminder = store.data.reminders.find(item => item.id === payload.id);
@@ -1079,7 +1079,7 @@ async function command(action, payload) {
     case 'ai-oauth-logout':
       if (cancelOAuth) cancelOAuth();
       delete store.data.secrets.aiOAuth;
-      providerStatus = 'ออกจากบัญชี OAuth ใน Cherry แล้ว';
+      providerStatus = 'ออกจากบัญชี OAuth ใน elysium-browser แล้ว';
       aiPreview = null; store.save(); break;
     case 'ai-check': { const result = await checkProvider(store.data.settings.ai, await aiCredential()); providerStatus = `เชื่อมต่อแล้ว · ${result.models.length} models`; publish(); return { ok: true, ...result }; }
     case 'ai-preview': {
@@ -1129,9 +1129,9 @@ async function command(action, payload) {
 }
 
 function configureSession(target, isPrivate = false) {
-  // Keep Chromium compatibility tokens while identifying Cherry and avoiding
+  // Keep Chromium compatibility tokens while identifying elysium-browser and avoiding
   // Electron-specific fingerprinting in both HTTP headers and navigator.userAgent.
-  target.setUserAgent(cherryUserAgent());
+  target.setUserAgent(elysiumUserAgent());
   target.setPermissionCheckHandler((contents, permission, origin) => {
     if (!['media', 'notifications', 'geolocation', 'fullscreen'].includes(permission) || !isWebURL(origin) || !origin.startsWith('https://') || !contents || contents.isDestroyed() || !isWebURL(contents.getURL()) || new URL(contents.getURL()).origin !== new URL(origin).origin) return false;
     origin = new URL(origin).origin;
@@ -1158,14 +1158,14 @@ function configureSession(target, isPrivate = false) {
     try {
       const { response } = await dialog.showMessageBox(win, {
         type: 'question', title: 'สิทธิ์ของเว็บไซต์', message: `${origin} ต้องการ${labels[permission]}`,
-        detail: 'อนุญาตเฉพาะระหว่างการเปิด Cherry ครั้งนี้', buttons: ['ไม่อนุญาต', 'อนุญาต'], defaultId: 0, cancelId: 0,
+        detail: 'อนุญาตเฉพาะระหว่างการเปิด elysium-browser ครั้งนี้', buttons: ['ไม่อนุญาต', 'อนุญาต'], defaultId: 0, cancelId: 0,
       });
       if (response === 1 && !contents.isDestroyed()) grantedPermissions.add(key);
       callback(response === 1 && !contents.isDestroyed());
     } catch { callback(false); }
   });
   target.on('will-download', (_event, item, contents) => {
-    item.setSaveDialogOptions({ title: 'บันทึกไฟล์ — Cherry', defaultPath: path.join(app.getPath('downloads'), path.basename(item.getFilename())) });
+    item.setSaveDialogOptions({ title: 'บันทึกไฟล์ — elysium-browser', defaultPath: path.join(app.getPath('downloads'), path.basename(item.getFilename())) });
     const download = { id: randomUUID(), sourceTabId: tabs.find(t => t.view?.webContents === contents)?.id, private: isPrivate, filename: item.getFilename(), url: item.getURL(), received: 0, total: item.getTotalBytes(), state: 'progressing', paused: false, canResume: false, createdAt: Date.now(), path: '', item };
     downloads.unshift(download);
     item.on('updated', (_event, state) => {
@@ -1200,8 +1200,8 @@ function createWindow() {
   tabs = [];
   win = new BrowserWindow({
     width: 1440, height: 900, minWidth: 1000, minHeight: 650,
-    title: CHERRY_BROWSER_NAME, backgroundColor: '#071122',
-    icon: path.join(__dirname, '../assets/cherry.ico'),
+    title: ELYSIUM_BROWSER_NAME, backgroundColor: '#071122',
+    icon: path.join(__dirname, '../assets/elysium.ico'),
     titleBarStyle: 'hidden', titleBarOverlay: { color: getNovelTheme(store.data.settings.theme.variant)?.palette.canvas || '#0a162c', symbolColor: getNovelTheme(store.data.settings.theme.variant)?.palette.text || '#cbdcfa', height: 40 },
     autoHideMenuBar: true, show: false,
     webPreferences: { preload: path.join(__dirname, 'preload.js'), contextIsolation: true, nodeIntegration: false, sandbox: true },
@@ -1231,8 +1231,8 @@ function createWindow() {
   win.loadFile(UI_FILE);
   if (store.data.settings.restoreTabs) for (const entry of saved) createTab(entry.url, { ...entry, private: false });
   store.data.activeWorkspace = activeWorkspace;
-  if (!workspaceTabs().length) createTab('cherry://home', { private: false });
-  activate(workspaceTabs().find(tab => tab.url === 'cherry://home')?.id || workspaceTabs()[0].id);
+  if (!workspaceTabs().length) createTab('elysium://home', { private: false });
+  activate(workspaceTabs().find(tab => tab.url === 'elysium://home')?.id || workspaceTabs()[0].id);
   if (process.argv.includes('--calendar')) openInternal('calendar');
   if (process.argv.includes('--themes')) openInternal('themes');
   memoryTimer = setInterval(async () => {
@@ -1249,6 +1249,18 @@ if (!app.requestSingleInstanceLock()) app.quit();
 else {
   app.on('second-instance', (_event, argv) => { if (win) { if (win.isMinimized()) win.restore(); win.focus(); if (argv.includes('--calendar')) openInternal('calendar'); if (argv.includes('--themes')) openInternal('themes'); } });
   app.whenReady().then(() => {
+    // First launch after the Cherry → elysium-browser rename adopts the legacy profile.
+    if (!process.env.ELYSIUM_TEST_PROFILE) {
+      try {
+        const nextDir = app.getPath('userData');
+        const legacyDir = path.join(path.dirname(nextDir), 'Cherrywebbrowser');
+        const hasData = fs.existsSync(path.join(nextDir, 'elysium-data.json')) || fs.existsSync(path.join(nextDir, 'cherry-data.json'));
+        if (!hasData && fs.existsSync(path.join(legacyDir, 'cherry-data.json'))) {
+          fs.mkdirSync(nextDir, { recursive: true });
+          fs.cpSync(legacyDir, nextDir, { recursive: true });
+        }
+      } catch { /* Start with a fresh profile when migration is unavailable. */ }
+    }
     store = new BrowserStore(app.getPath('userData'));
     // Restore the persisted download history (finished, non-private) into the session list.
     downloads = store.data.downloads.map(record => ({ ...record, paused: false, canResume: false }));
@@ -1258,8 +1270,8 @@ else {
     privateSession = session.fromPartition(`cherry-private-${randomUUID()}`);
     configureSession(browserSession);
     configureSession(privateSession, true);
-    ipcMain.handle('cherry:state', event => { if (!trusted(event)) throw new Error('Untrusted sender'); return snapshot(); });
-    ipcMain.handle('cherry:command', async (event, action, payload) => {
+    ipcMain.handle('elysium:state', event => { if (!trusted(event)) throw new Error('Untrusted sender'); return snapshot(); });
+    ipcMain.handle('elysium:command', async (event, action, payload) => {
       if (!trusted(event)) throw new Error('Untrusted sender');
       try { return await command(action, payload); }
       catch (error) { return { ok: false, error: error.message }; }

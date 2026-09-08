@@ -1,4 +1,4 @@
-# แก้ error เสียงใน Cherry Browser 1.1.1
+# แก้ error เสียงใน elysium-browser Browser 1.1.1
 
 จากภาพ `Screenshot 2026-09-06 212624.png`: main process แจ้ง `Cannot read properties of undefined (reading 'audible')` ที่ตัวรับเหตุการณ์เสียงใน `src/main.js`
 
@@ -12,7 +12,7 @@ Electron 44.2.0 ส่ง `audible` อยู่บน event ตัวแรก 
 - ตรวจเล่น/หยุดเสียง, mute/unmute ของ WebContents จริง, เล่นในแท็บเบื้องหลัง, ปิดแท็บขณะเล่น และเปิดเว็บต่อได้
 - `npm run check`: ผ่าน
 - `npm test`: ผ่าน 7/7
-- `$env:CHERRY_EXECUTABLE=(Resolve-Path 'release/win-unpacked/Cherrywebbrowser.exe').Path; npx playwright test --grep-invert 'native screenshots'`: ผ่าน 7/7 รวม browser regression เดิม 6 กรณีและเสียง 1 กรณี
+- `$env:ELYSIUM_EXECUTABLE=(Resolve-Path 'release/win-unpacked/elysium-browser.exe').Path; npx playwright test --grep-invert 'native screenshots'`: ผ่าน 7/7 รวม browser regression เดิม 6 กรณีและเสียง 1 กรณี
 - `npm run build`: exit 0; portable 1.1.1 ขนาด 100,976,478 bytes
 - `node scripts/verify-package.js`: exit 0; source/assets 26 ไฟล์ตรงกับ app.asar ทุก byte; SHA-256 อยู่ใน [รายงานแพ็กเกจ](package-verification.json)
 - [ผลเสียงจาก EXE](audio-regression.json), [ภาพ native ขณะเล่นเสียง](screenshots/audio-error-fixed.png)
@@ -29,6 +29,6 @@ Electron 44.2.0 ส่ง `audible` อยู่บน event ตัวแรก 
 
 สำรองไฟล์เดิมไว้ที่ `backups/before-audio-fix-20260906-213259` คง portable 1.1.0 เดิมไว้ และใช้ path/partition/schema ของ user profile เดิม ไม่มีการล้างข้อมูล
 
-เปิดรุ่นแก้ไขด้วย `Start-Cherry.cmd` หรือ `release/Cherrywebbrowser-1.1.1-portable.exe`
+เปิดรุ่นแก้ไขด้วย `Start-Elysium.cmd` หรือ `release/elysium-browser-1.1.1-portable.exe`
 
-เปิดแอป 1.1.1 จาก `release/win-unpacked/Cherrywebbrowser.exe` ด้วยโปรไฟล์ปกติแล้ว ตรวจพบหน้าต่าง Cherrywebbrowser และ process ตอบสนองตามปกติ
+เปิดแอป 1.1.1 จาก `release/win-unpacked/elysium-browser.exe` ด้วยโปรไฟล์ปกติแล้ว ตรวจพบหน้าต่าง elysium-browser และ process ตอบสนองตามปกติ

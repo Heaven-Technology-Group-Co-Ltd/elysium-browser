@@ -1,7 +1,7 @@
 // One catalog shared by storage validation, the native window and Theme Studio.
 (function(root, factory) {
   if (typeof module === 'object' && module.exports) module.exports = factory();
-  else root.cherryThemes = factory();
+  else root.elysiumThemes = factory();
 })(typeof window === 'object' ? window : globalThis, function() {
   const legacy = [
     ['midnight','Electric Midnight','city'], ['violet','Violet Horizon','team'], ['slate','Quiet Navy','city'],

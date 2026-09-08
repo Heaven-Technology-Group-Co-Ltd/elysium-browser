@@ -45,7 +45,7 @@ function createOAuthAttempt(config, redirectURI) {
   const oauth = validateOAuthConfig(config);
   const redirect = new URL(redirectURI);
   if (redirect.protocol !== 'http:' || redirect.hostname !== '127.0.0.1' || !redirect.port || redirect.pathname !== '/oauth/callback') {
-    throw new Error('OAuth callback ต้องเป็น loopback 127.0.0.1 ของ Cherry');
+    throw new Error('OAuth callback ต้องเป็น loopback 127.0.0.1 ของ elysium-browser');
   }
   const codeVerifier = base64url(randomBytes(48));
   const state = base64url(randomBytes(32));

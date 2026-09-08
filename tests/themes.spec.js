@@ -3,15 +3,15 @@ const fs = require('node:fs'), path = require('node:path'), os = require('node:o
 const {novel} = require('../src/themes');
 let app,page,profile,errors;
 async function launch() {
-  app = await electron.launch({...process.env.CHERRY_EXECUTABLE?{executablePath:process.env.CHERRY_EXECUTABLE,args:['--themes']}:{args:[path.resolve('.'),'--themes']},env:{...process.env,CHERRY_TEST_PROFILE:profile}});
+  app = await electron.launch({...process.env.ELYSIUM_EXECUTABLE?{executablePath:process.env.ELYSIUM_EXECUTABLE,args:['--themes']}:{args:[path.resolve('.'),'--themes']},env:{...process.env,ELYSIUM_TEST_PROFILE:profile}});
   await app.firstWindow(); await expect.poll(()=>app.windows().some(p=>p.url().endsWith('/index.html'))).toBe(true);
   page=app.windows().find(p=>p.url().endsWith('/index.html'));page.on('pageerror',e=>errors.push(e.message));
   await expect(page.locator('.novel-studio')).toBeVisible();
 }
-const state=()=>page.evaluate(()=>window.cherry.getState());
-async function call(a,p){const r=await page.evaluate(([a,p])=>window.cherry.command(a,p),[a,p]);expect(r.ok,r.error).toBe(true);if(a==='internal')await expect(page.locator('#address')).toHaveValue(p==='home'?'':`cherry://${p}`);return r;}
+const state=()=>page.evaluate(()=>window.elysium.getState());
+async function call(a,p){const r=await page.evaluate(([a,p])=>window.elysium.command(a,p),[a,p]);expect(r.ok,r.error).toBe(true);if(a==='internal')await expect(page.locator('#address')).toHaveValue(p==='home'?'':`elysium://${p}`);return r;}
 const rgb = hex => `rgb(${hex.slice(1).match(/../g).map(c=>parseInt(c,16)).join(', ')})`;
-test.beforeEach(async()=>{profile=fs.mkdtempSync(path.join(os.tmpdir(),'cherry-novel-e2e-'));errors=[];await launch();});
+test.beforeEach(async()=>{profile=fs.mkdtempSync(path.join(os.tmpdir(),'elysium-novel-e2e-'));errors=[];await launch();});
 test.afterEach(async()=>{if(app){await app.close();app=null;}expect(errors).toEqual([]);});
 
 test('12 story themes load, apply app colors, filter, randomize and survive restart',async()=>{

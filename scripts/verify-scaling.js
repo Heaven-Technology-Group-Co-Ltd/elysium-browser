@@ -3,8 +3,8 @@ const fs=require('node:fs');const path=require('node:path');const os=require('no
 (async()=>{
  const results=[];
  for(const scale of [1.25,1.5]){
-  const profile=fs.mkdtempSync(path.join(os.tmpdir(),'cherry-scale-'));
-  const instance=await electron.launch({...(process.env.CHERRY_EXECUTABLE?{executablePath:process.env.CHERRY_EXECUTABLE,args:[`--force-device-scale-factor=${scale}`]}:{args:[path.resolve('.'),`--force-device-scale-factor=${scale}`]}),env:{...process.env,CHERRY_TEST_PROFILE:profile}});
+  const profile=fs.mkdtempSync(path.join(os.tmpdir(),'elysium-scale-'));
+  const instance=await electron.launch({...(process.env.ELYSIUM_EXECUTABLE?{executablePath:process.env.ELYSIUM_EXECUTABLE,args:[`--force-device-scale-factor=${scale}`]}:{args:[path.resolve('.'),`--force-device-scale-factor=${scale}`]}),env:{...process.env,ELYSIUM_TEST_PROFILE:profile}});
   try{
    const page=await instance.firstWindow();await page.waitForSelector('.hero-search');
    await instance.evaluate(({BrowserWindow})=>BrowserWindow.getAllWindows()[0].setBounds({x:30,y:30,width:1366,height:768}));
@@ -13,9 +13,9 @@ const fs=require('node:fs');const path=require('node:path');const os=require('no
    expect(geometry.dpr).toBe(scale);expect(geometry.shortcuts.bottom).toBeLessThanOrEqual(geometry.height);
    const captured=await instance.evaluate(async({BrowserWindow,desktopCapturer},scale)=>{const w=BrowserWindow.getAllWindows()[0];const sources=await desktopCapturer.getSources({types:['window'],thumbnailSize:{width:Math.ceil(1366*scale),height:Math.ceil(768*scale)}});const s=sources.find(s=>s.id===w.getMediaSourceId());if(!s||s.thumbnail.isEmpty())throw new Error('No native window capture');return {png:s.thumbnail.toPNG().toString('base64'),pixels:s.thumbnail.getSize()};},scale);
    fs.writeFileSync(path.resolve(`docs/screenshots/scaling-${scale*100}.png`),Buffer.from(captured.png,'base64'));
-   await page.evaluate(()=>window.cherry.command('navigate','https://example.com/'));
-   await expect.poll(async()=>{const s=await page.evaluate(()=>window.cherry.getState());return s.tabs[0].title.includes('Example Domain')&&!s.tabs[0].loading&&!s.tabs[0].error;},{timeout:30000}).toBe(true);
-   await page.evaluate(()=>window.cherry.command('panel','notes'));
+   await page.evaluate(()=>window.elysium.command('navigate','https://example.com/'));
+   await expect.poll(async()=>{const s=await page.evaluate(()=>window.elysium.getState());return s.tabs[0].title.includes('Example Domain')&&!s.tabs[0].loading&&!s.tabs[0].error;},{timeout:30000}).toBe(true);
+   await page.evaluate(()=>window.elysium.command('panel','notes'));
    await expect(page.locator('#side-panel')).toBeVisible();
    const native=await instance.evaluate(({BrowserWindow})=>BrowserWindow.getAllWindows()[0].contentView.children.filter(v=>v.webContents?.getURL().startsWith('http')).map(v=>({bounds:v.getBounds(),visible:v.getVisible()})));
    const shellBounds=await page.locator('#viewport').boundingBox();

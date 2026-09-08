@@ -4,7 +4,7 @@ const path = require('node:path');
 const crypto = require('node:crypto');
 const assert = require('node:assert/strict');
 
-const buildDirectory = process.env.CHERRY_BUILD_DIR || 'release';
+const buildDirectory = process.env.ELYSIUM_BUILD_DIR || 'release';
 const archive = path.resolve(buildDirectory, 'win-unpacked/resources/app.asar');
 function files(dir) {
   return fs.readdirSync(dir, { withFileTypes: true }).flatMap(entry => (
@@ -19,11 +19,11 @@ for (const file of [...files('src'), ...files('assets')]) {
   checked.push(relative);
 }
 const entries = asar.listPackage(archive);
-assert.ok(!entries.some(item => /backups|artwork-source|cherry-(?:browser|ui)-handoff|test-results|\.env/i.test(item)));
+assert.ok(!entries.some(item => /backups|artwork-source|elysium-(?:browser|ui)-handoff|test-results|\.env/i.test(item)));
 
 const hash = file => crypto.createHash('sha256').update(fs.readFileSync(file)).digest('hex');
 const version = require('../package.json').version;
-const portable = path.join(buildDirectory, `Cherrywebbrowser-${version}-portable.exe`);
+const portable = path.join(buildDirectory, `elysium-browser-${version}-portable.exe`);
 const report = {
   version,
   buildDirectory,

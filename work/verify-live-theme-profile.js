@@ -1,5 +1,5 @@
 const fs=require('node:fs'),path=require('node:path'),crypto=require('node:crypto'),assert=require('node:assert/strict');
-const file=path.join(process.env.APPDATA,'Cherrywebbrowser','cherry-data.json');
+const file=path.join(process.env.APPDATA,'elysium-browser','elysium-data.json');
 const data=JSON.parse(fs.readFileSync(file,'utf8'));
 const collections=['notes','postIts','reminders','calendarEvents','bookmarks','todos','workspaces'];
 const digest=value=>crypto.createHash('sha256').update(JSON.stringify(value)).digest('hex');

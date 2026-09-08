@@ -1,4 +1,4 @@
-const cal = window.cherryCalendar;
+const cal = window.elysiumCalendar;
 let calendarSelected = cal.dateKey(new Date());
 let calendarMonth = calendarSelected.slice(0, 7);
 let calendarView = 'month';
@@ -75,7 +75,7 @@ function renderCalendar() {
     <div class="calendar-toolbar"><div class="calendar-month-controls"><button class="secondary-button" data-calendar-action="today">วันนี้</button>${ib('back', 'เดือนก่อนหน้า', 'data-calendar-action="previous"')}${ib('forward', 'เดือนถัดไป', 'data-calendar-action="next"')}<h2 id="calendar-month-title">${month.toLocaleDateString('th-TH', { month: 'long', year: 'numeric' })}</h2><input id="calendar-month-picker" type="month" value="${calendarMonth}" min="1900-01" max="2100-12" aria-label="ไปยังเดือน"></div><div class="calendar-view-switch" aria-label="มุมมองปฏิทิน"><button data-calendar-view="month" aria-pressed="${calendarView === 'month'}">เดือน</button><button data-calendar-view="agenda" aria-pressed="${calendarView === 'agenda'}">รายการ</button></div></div>
     <div class="calendar-search-row"><label class="calendar-search">${svg('search')}<input id="calendar-search" type="search" value="${esc(calendarQuery)}" placeholder="ค้นหานัดหมาย สถานที่ หรือรายละเอียด" aria-label="ค้นหานัดหมาย"></label><span id="calendar-count" aria-live="polite"></span></div>
     <div id="calendar-body" class="calendar-body"></div>
-    <p class="calendar-footnote">${svg('bell')}${state.notificationsSupported ? 'แจ้งเตือนผ่าน Windows ขณะ Cherry เปิดอยู่ · เมื่อเปิดแอปอีกครั้ง จะเตือนนัดหมายที่ยังไม่สิ้นสุด' : 'Windows notification ไม่พร้อมบนเครื่องนี้ · นัดหมายยังบันทึกและเปิดดูได้ตามปกติ'}</p>
+    <p class="calendar-footnote">${svg('bell')}${state.notificationsSupported ? 'แจ้งเตือนผ่าน Windows ขณะ elysium-browser เปิดอยู่ · เมื่อเปิดแอปอีกครั้ง จะเตือนนัดหมายที่ยังไม่สิ้นสุด' : 'Windows notification ไม่พร้อมบนเครื่องนี้ · นัดหมายยังบันทึกและเปิดดูได้ตามปกติ'}</p>
   </section>`;
   renderCalendarBody();
 }
@@ -132,7 +132,7 @@ async function editCalendarEvent(id) {
       const result = await command('calendar-save', payload);
       if (!result.ok) { $('#calendar-form-error').hidden = false; $('#calendar-form-error').textContent = result.error || 'บันทึกไม่สำเร็จ'; return false; }
       calendarSelected = data.startDate; calendarMonth = data.startDate.slice(0, 7);
-      render(await window.cherry.getState());
+      render(await window.elysium.getState());
       toast('บันทึกนัดหมายแล้ว'); return true;
     });
   syncCalendarForm();
@@ -146,7 +146,7 @@ document.addEventListener('click', async e => {
   else if (d.calendarDelete) {
     await showForm('ลบนัดหมายนี้?', `<p class="muted">${esc(state.calendarEvents.find(event => event.id === d.calendarDelete)?.title || '')} จะถูกลบออกจากปฏิทินในเครื่อง</p>`, async () => {
       const result = await command('calendar-delete', d.calendarDelete);
-      if (result.ok) { render(await window.cherry.getState()); toast('ลบนัดหมายแล้ว'); }
+      if (result.ok) { render(await window.elysium.getState()); toast('ลบนัดหมายแล้ว'); }
       return result.ok;
     }, 'ลบนัดหมาย');
   } else if (d.calendarView) {
@@ -182,8 +182,8 @@ document.addEventListener('keydown', e => {
   selectCalendarDay(target);
   document.querySelector(`.calendar-day[data-calendar-day="${target}"]`)?.focus();
 });
-window.cherry.onCalendarEvent(async id => {
-  const next = await window.cherry.getState();
+window.elysium.onCalendarEvent(async id => {
+  const next = await window.elysium.getState();
   const event = next.calendarEvents.find(item => item.id === id);
   if (!event) return;
   calendarSelected = event.allDay ? event.startDate : cal.dateKey(event.startAt);

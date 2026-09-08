@@ -25,7 +25,7 @@ test('all story palettes keep normal and secondary text readable on app surfaces
 });
 
 test('every novel theme survives a real profile round trip without losing local data', () => {
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(),'cherry-theme-store-'));
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(),'elysium-theme-store-'));
   try {
     const store = new BrowserStore(dir);
     store.data.notes.push({id:'existing-note',title:'Keep me',body:'Existing local note'});

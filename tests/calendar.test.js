@@ -8,7 +8,7 @@ const { normalizeEvent, parseDate, dateKey, eventsOnDate, eventRange, reminderAt
 const timed = (extra = {}) => normalizeEvent({ title: 'ประชุม', allDay: false, startAt: new Date(2028, 1, 28, 23).getTime(), endAt: new Date(2028, 1, 29).getTime(), reminderMinutes: 15, ...extra });
 
 test('calendar validates leap days, ranges, supported reminders and text fields', () => {
-  assert.equal(resolveAddress('cherry://calendar'), 'cherry://calendar');
+  assert.equal(resolveAddress('elysium://calendar'), 'elysium://calendar');
   assert.ok(parseDate('2028-02-29'));
   for (const key of ['2027-02-29', '2028-02-30', '2028-13-01', '0099-01-01', '2028-2-01']) assert.equal(parseDate(key), null);
   for (const extra of [{ title: '  ' }, { startAt: NaN }, { endAt: Infinity }, { startAt: '2028-01-01' }, { endAt: 0 }, { reminderMinutes: -5 }, { reminderMinutes: '15' }]) assert.throws(() => timed(extra));
@@ -52,25 +52,25 @@ test('calendar reminders fire once, catch ongoing events, and skip disabled or e
 });
 
 test('schema 5 preserves organizer data and calendar state across restarts, ignoring corrupt events', t => {
-  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'cherry-calendar-core-'));
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'elysium-calendar-core-'));
   t.after(() => {
     assert.equal(path.dirname(path.resolve(directory)), path.resolve(os.tmpdir()));
-    assert.ok(path.basename(directory).startsWith('cherry-calendar-core-'));
+    assert.ok(path.basename(directory).startsWith('elysium-calendar-core-'));
     fs.rmSync(directory, { recursive: true, force: true });
   });
-  const file = path.join(directory, 'cherry-data.json');
+  const file = path.join(directory, 'elysium-data.json');
   const old = JSON.stringify({ schemaVersion: 3, notes: [{ id: 'n', title: 'เดิม', body: 'อย่าหาย' }], reminders: [{ id: 'r', title: 'งานเก่า', dueAt: 1234 }], bookmarks: [{ id: 'b', title: 'เว็บ', url: 'https://example.com/' }] });
   fs.writeFileSync(file, old);
   const store = new BrowserStore(directory);
   assert.equal(fs.readFileSync(`${file}.before-schema-5`, 'utf8'), old);
   const event = { ...timed(), id: 'a', notifiedAt: 123, createdAt: 1, updatedAt: 2 };
   store.data.calendarEvents.push(event, { ...event }, { id: 'bad', title: 'bad', allDay: true, startDate: 'oops' });
-  store.data.sessionTabs.push({ id: 'c', title: 'Calendar', url: 'cherry://calendar' });
+  store.data.sessionTabs.push({ id: 'c', title: 'Calendar', url: 'elysium://calendar' });
   store.save();
   const restored = new BrowserStore(directory);
   assert.deepEqual(restored.data.calendarEvents, [event]);
   assert.equal(restored.data.notes[0].body, 'อย่าหาย');
   assert.equal(restored.data.reminders[0].title, 'งานเก่า');
   assert.equal(restored.data.bookmarks[0].title, 'เว็บ');
-  assert.equal(restored.data.sessionTabs[0].url, 'cherry://calendar');
+  assert.equal(restored.data.sessionTabs[0].url, 'elysium://calendar');
 });

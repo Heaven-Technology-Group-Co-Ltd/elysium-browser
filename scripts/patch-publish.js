@@ -1,6 +1,6 @@
 const fs = require('node:fs');
 
-const [owner, repo = 'CYRVOR-CherryBrowser'] = (process.env.GITHUB_REPOSITORY || '').split('/');
+const [owner, repo = 'elysium-browser'] = (process.env.GITHUB_REPOSITORY || '').split('/');
 if (!owner) process.exit(0);
 
 const pkgPath = 'package.json';

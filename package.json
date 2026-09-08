@@ -1,9 +1,9 @@
 {
-  "name": "cherrywebbrowser",
+  "name": "elysium-browser",
   "version": "1.4.0",
-  "description": "Cherry — a little space for your curiosity. A Windows desktop web browser.",
+  "description": "elysium-browser — a little space for your curiosity. A Windows desktop web browser.",
   "main": "src/main.js",
-  "author": "Heaven Technologies",
+  "author": "Heaven Technology Group Co., Ltd. and Heaven Technologies",
   "license": "Apache-2.0",
   "scripts": {
     "start": "electron .",
@@ -24,10 +24,10 @@
     "sharp": "^0.35.4"
   },
   "build": {
-    "appId": "com.cherry.webbrowser",
-    "productName": "Cherrywebbrowser",
+    "appId": "com.elysium.browser",
+    "productName": "elysium-browser",
     "directories": {
-      "output": "release-browser-identity"
+      "output": "release"
     },
     "publish": {
       "provider": "github",
@@ -44,19 +44,19 @@
         "portable",
         "nsis"
       ],
-      "icon": "assets/cherry.ico",
+      "icon": "assets/elysium.ico",
       "signExecutable": false
     },
     "portable": {
-      "artifactName": "Cherrywebbrowser-${version}-portable.exe"
+      "artifactName": "elysium-browser-${version}-portable.exe"
     },
     "nsis": {
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
-      "shortcutName": "Cherry Browser",
-      "artifactName": "Cherrywebbrowser-Setup-${version}.exe"
+      "shortcutName": "elysium-browser",
+      "artifactName": "elysium-browser-Setup-${version}.exe"
     }
   },
   "dependencies": {

@@ -1,17 +1,17 @@
 // Launch with Electron directly, without CDP/Playwright's capture instrumentation.
 const {app,BrowserWindow,webContents,session}=require('electron');
 const fs=require('node:fs');const path=require('node:path');const http=require('node:http');const assert=require('node:assert/strict');
-if(!process.env.CHERRY_TEST_PROFILE)throw new Error('A separate test profile is required');
+if(!process.env.ELYSIUM_TEST_PROFILE)throw new Error('A separate test profile is required');
 const started=Date.now();require('../src/main');
 const pause=ms=>new Promise(r=>setTimeout(r,ms));
 async function until(read,expected){for(let i=0;i<100;i++){if(await read()===expected)return;await pause(100);}throw new Error('Condition timed out');}
 let server;
 (async()=>{
  await app.whenReady();await until(()=>!!BrowserWindow.getAllWindows()[0]?.webContents.getURL(),true);
- const win=BrowserWindow.getAllWindows()[0];await until(()=>win.webContents.executeJavaScript('!!window.cherry').catch(()=>false),true);
+ const win=BrowserWindow.getAllWindows()[0];await until(()=>win.webContents.executeJavaScript('!!window.elysium').catch(()=>false),true);
  await until(()=>win.webContents.executeJavaScript("!!document.querySelector('.hero-search')?.offsetWidth && [...document.images].every(i=>i.complete && i.naturalWidth>0)"),true);
- const state=()=>win.webContents.executeJavaScript('window.cherry.getState()');
- const call=async(a,p)=>{const result=await win.webContents.executeJavaScript(`window.cherry.command(${JSON.stringify(a)},${JSON.stringify(p??null)})`);assert.equal(result.ok,true,result.error);return result;};
+ const state=()=>win.webContents.executeJavaScript('window.elysium.getState()');
+ const call=async(a,p)=>{const result=await win.webContents.executeJavaScript(`window.elysium.command(${JSON.stringify(a)},${JSON.stringify(p??null)})`);assert.equal(result.ok,true,result.error);return result;};
  const startupMs=Date.now()-started;const measurements=[];
  const measure=label=>({label,webContents:webContents.getAllWebContents().length,processes:app.getAppMetrics().length,workingSetKB:app.getAppMetrics().reduce((n,p)=>n+(p.memory?.workingSetSize||0),0)});
  server=http.createServer((req,res)=>{
@@ -28,15 +28,15 @@ let server;
   assert.equal(wc.isBeingCaptured(),false,'Unexpected external capture: lifecycle test needs uncaptured webContents');
   await call('suspend-tab',{id:target.id,confirmed:true});assert.equal((await state()).tabs.find(t=>t.id===target.id).suspended,true);assert.equal(wc.isDestroyed(),true);
   await call('activate-tab',target.id);await until(async()=>(await state()).tabs.some(t=>t.loading),false);assert.equal((await state()).tabs.find(t=>t.id===target.id).suspended,false);
-  const activeDenied=await win.webContents.executeJavaScript(`window.cherry.command('suspend-tab',{id:${JSON.stringify(target.id)},confirmed:true})`);assert.equal(activeDenied.ok,false);
+  const activeDenied=await win.webContents.executeJavaScript(`window.elysium.command('suspend-tab',{id:${JSON.stringify(target.id)},confirmed:true})`);assert.equal(activeDenied.ok,false);
   const restored=webContents.getAllWebContents().find(w=>w.getURL()===target.url);await restored.executeJavaScript("document.querySelector('#draft').value='unsaved test draft'");await call('activate-tab',first);await call('tab-auto-suspend',{id:target.id,enabled:true});
-  const editedDenied=await win.webContents.executeJavaScript(`window.cherry.command('suspend-tab',{id:${JSON.stringify(target.id)}})`);assert.equal(editedDenied.ok,false);
+  const editedDenied=await win.webContents.executeJavaScript(`window.elysium.command('suspend-tab',{id:${JSON.stringify(target.id)}})`);assert.equal(editedDenied.ok,false);
   if(round===0){
    await restored.executeJavaScript("document.querySelector('#draft').value='';window.testAudio=new Audio('/silence.wav');testAudio.loop=true;document.body.append(testAudio);testAudio.play()",true);
-   const audioDenied=await win.webContents.executeJavaScript(`window.cherry.command('suspend-tab',{id:${JSON.stringify(target.id)},confirmed:true})`);assert.equal(audioDenied.ok,false);await restored.executeJavaScript('testAudio.pause();testAudio.remove()');
-   session.fromPartition('persist:cherry-web').once('will-download',(_e,item)=>item.setSavePath(path.join(process.env.CHERRY_TEST_PROFILE,'memory-test.bin')));restored.downloadURL(base+'download');
+   const audioDenied=await win.webContents.executeJavaScript(`window.elysium.command('suspend-tab',{id:${JSON.stringify(target.id)},confirmed:true})`);assert.equal(audioDenied.ok,false);await restored.executeJavaScript('testAudio.pause();testAudio.remove()');
+   session.fromPartition('persist:cherry-web').once('will-download',(_e,item)=>item.setSavePath(path.join(process.env.ELYSIUM_TEST_PROFILE,'memory-test.bin')));restored.downloadURL(base+'download');
    await until(async()=>(await state()).downloads[0]?.received>0,true);
-   const downloadDenied=await win.webContents.executeJavaScript(`window.cherry.command('suspend-tab',{id:${JSON.stringify(target.id)},confirmed:true})`);assert.equal(downloadDenied.ok,false);await call('cancel-download',(await state()).downloads[0].id);await until(async()=>(await state()).downloads[0].state,'cancelled');
+   const downloadDenied=await win.webContents.executeJavaScript(`window.elysium.command('suspend-tab',{id:${JSON.stringify(target.id)},confirmed:true})`);assert.equal(downloadDenied.ok,false);await call('cancel-download',(await state()).downloads[0].id);await until(async()=>(await state()).downloads[0].state,'cancelled');
   }
   for(const t of (await state()).tabs.filter(t=>t.id!==first))await call('close-tab',t.id);
   await pause(1200);assert.equal(webContents.getAllWebContents().length,2);measurements.push(measure(`round-${round+1}-closed-to-baseline`));

@@ -1,7 +1,7 @@
 // Shared calendar rules for the local store and the isolated app renderer.
 (function (root, factory) {
   if (typeof module === 'object' && module.exports) module.exports = factory();
-  else root.cherryCalendar = factory();
+  else root.elysiumCalendar = factory();
 })(typeof window === 'object' ? window : globalThis, function () {
   const COLORS = { blue: 'งาน', purple: 'ส่วนตัว', mint: 'สุขภาพ', pink: 'ครอบครัว', yellow: 'อื่น ๆ' };
   const REMINDERS = [0, 5, 15, 30, 60, 1440];

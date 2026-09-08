@@ -1,4 +1,4 @@
-# PROJECT_SUMMARY: Cherrywebbrowser
+# PROJECT_SUMMARY: elysium-browser
 
 > **Machine-Readable & Human-Readable Architecture & Codebase Summary**  
 > Generated for AI context parsing, developer onboarding, and system analysis.
@@ -7,13 +7,13 @@
 
 ## 1. Metadata & Project Overview
 
-- **Project Name:** Cherrywebbrowser (cherrywebbrowser)
+- **Project Name:** elysium-browser (elysium-browser)
 - **Version:** 1.4.0
 - **Application Type:** Desktop Web Browser (Windows Portable)
 - **Primary Runtime:** Electron 44.2.0 (Chromium engine)
 - **Architectural Style:** Multi-process Electron app using WebContentsView (separated UI shell and external content)
-- **License:** Apache-2.0 (Source code); Custom copyrighted assets for Character/Brand (CHERRY : BODY ZERO & CYRVOR)
-- **Local Profile Location:** %APPDATA%/Cherrywebbrowser (Storage file: cherry-data.json, Schema v5)
+- **License:** Apache-2.0 (Source code). Copyright © 2026 Heaven Technology Group Co., Ltd. and Heaven Technologies. Custom copyrighted assets for Character/Brand (CHERRY : BODY ZERO & CYRVOR)
+- **Local Profile Location:** %APPDATA%/elysium-browser (Storage file: elysium-data.json, Schema v5; legacy Cherry profile auto-migrated on first launch)
 - **Target OS:** Windows 10/11 (x64)
 
 ---
@@ -51,11 +51,11 @@ Testing & Quality:
 |  - Security & Credentials (safeStorage encryption for API keys/tokens)  |
 |  - Native IPC Router & Event Dispatcher                                 |
 |  - Windows Notifications (Calendar alerts, Reminders)                   |
-|  - Custom User-Agent Injection: CherryBrowserSystem/<version>           |
+|  - Custom User-Agent Injection: elysium-browser/<version>           |
 +-------------------------------------------------------------------------+
                                     |
                     IPC via ContextBridge (src/preload.js)
-            (Restricted API: window.cherry, no direct Node.js access)
+            (Restricted API: window.elysium, no direct Node.js access)
                                     |
                                     v
 +-------------------------------------------------------------------------+
@@ -85,14 +85,14 @@ Testing & Quality:
 ### 4.1. Web Browsing & Navigation
 - **Tabs & Workspaces:** Full tab lifecycle management (Open, Close, Reorder, Pin, Mute, Reopen closed tabs, Private mode). Tabs are categorized into configurable **Workspaces**.
   - **Split View:** Real split-screen rendering allowing two independent WebContentsView instances with adjustable ratio.
-  - **Download Hub:** Real download lifecycle (destination, progress, pause/resume/cancel). Finished records in normal mode persist in cherry-data.json across restarts; private downloads are excluded.
-- **Address Bar & Omnibox:** Supports quick search (Google, DuckDuckGo, Bing) and internal navigation schemas (cherry://home, cherry://calendar, cherry://themes, etc.).
+  - **Download Hub:** Real download lifecycle (destination, progress, pause/resume/cancel). Finished records in normal mode persist in elysium-data.json across restarts; private downloads are excluded.
+- **Address Bar & Omnibox:** Supports quick search (Google, DuckDuckGo, Bing) and internal navigation schemas (elysium://home, elysium://calendar, elysium://themes, etc.).
 - **Command Palette (Ctrl+K):** Fast fuzzy search across open tabs, history, bookmarks, and browser commands.
 - **Memory Saver:** Detects idle tabs based on user inactivity threshold (default: 20 min) and suspends their WebContents to free RAM, with auto-resume on focus. Protects tabs with audio, pinned state, split-view, or pending downloads.
 
 ### 4.2. Local Productivity Suite (Offline-First)
-- **Calendar (cherry://calendar):**
-  - Stored locally in cherry-data.json.
+- **Calendar (elysium://calendar):**
+  - Stored locally in elysium-data.json.
   - Monthly views, category color coding, start/end date-times, multi-day support.
   - Native Windows Notifications trigger before events (configurable intervals).
 - **Notes & Post-it:**
@@ -124,11 +124,11 @@ Testing & Quality:
 ## 5. Repository File Map & Navigation
 
 `
-CYRVOR-CherryBrowser-main/
+elysium-browser/
 ├── package.json               # Manifest, script definitions, dependencies
 ├── README.md                  # Detailed Thai user & developer manual
 ├── TEST_REPORT.md             # Verification test runs & validation matrix
-├── Start-Cherry.cmd           # Windows batch launcher script
+├── Start-Elysium.cmd           # Windows batch launcher script
 │
 ├── src/                       # Core application source code
 │   ├── main.js                # Electron main process (lifecycle, IPC, window management)
@@ -168,7 +168,7 @@ CYRVOR-CherryBrowser-main/
 
 ---
 
-## 6. Key Data Schemas (cherry-data.json)
+## 6. Key Data Schemas (elysium-data.json)
 
 The configuration and personal data file adheres to **Schema Version 5**:
 

@@ -30,10 +30,16 @@ function isWebURL(value) {
   catch { return false; }
 }
 
+// Legacy Cherry builds used cherry:// internal URLs; accept them as aliases.
+function normalizeInternalURL(url) {
+  return typeof url === 'string' ? url.replace(/^cherry:\/\//i, 'elysium://') : url;
+}
+
 function resolveAddress(input, engine = 'google') {
-  const value = String(input ?? '').trim().slice(0, 8192);
-  if (!value) return 'cherry://home';
-  if (INTERNAL_PAGES.some(page => value === `cherry://${page}`)) return value;
+  const raw = String(input ?? '').trim().slice(0, 8192);
+  if (!raw) return 'elysium://home';
+  const value = normalizeInternalURL(raw);
+  if (INTERNAL_PAGES.some(page => value === `elysium://${page}`)) return value;
   // Recognize host:port before rejecting explicit non-web schemes.
   const hostLike = /^(localhost|\[[0-9a-f:]+\]|(?:[^\s./:]+\.)+[^\s./:]+)(:\d+)?([/?#].*)?$/i.test(value);
   if (hostLike) {
@@ -69,23 +75,33 @@ function defaults() {
 class BrowserStore {
   constructor(directory) {
     this.directory = directory;
-    this.file = path.join(directory, 'cherry-data.json');
+    this.file = path.join(directory, 'elysium-data.json');
+    this.legacyFile = path.join(directory, 'cherry-data.json');
     this.data = defaults();
     this.writeError = null;
     try {
-      const saved = JSON.parse(fs.readFileSync(this.file, 'utf8'));
+      let saved;
+      let sourceFile = this.file;
+      try {
+        saved = JSON.parse(fs.readFileSync(this.file, 'utf8'));
+      } catch (error) {
+        // First run after the Cherry → elysium-browser rename reads the legacy file.
+        if (error.code !== 'ENOENT' || !fs.existsSync(this.legacyFile)) throw error;
+        sourceFile = this.legacyFile;
+        saved = JSON.parse(fs.readFileSync(this.legacyFile, 'utf8'));
+      }
       if (saved.schemaVersion > SCHEMA_VERSION) { this.readOnly = true; throw new Error('Newer profile schema'); }
       if (!saved.schemaVersion || saved.schemaVersion < SCHEMA_VERSION) {
         const backup = `${this.file}.before-schema-${SCHEMA_VERSION}`;
-        if (!fs.existsSync(backup)) fs.copyFileSync(this.file, backup);
+        if (!fs.existsSync(backup)) fs.copyFileSync(sourceFile, backup);
       }
       if (!saved.schemaVersion || saved.schemaVersion < 2) {
         const backup = `${this.file}.before-schema-2`;
-        if (!fs.existsSync(backup)) fs.copyFileSync(this.file, backup);
+        if (!fs.existsSync(backup)) fs.copyFileSync(sourceFile, backup);
       }
       if (!saved.schemaVersion || saved.schemaVersion < 3) {
         const backup = `${this.file}.before-schema-3`;
-        if (!fs.existsSync(backup)) fs.copyFileSync(this.file, backup);
+        if (!fs.existsSync(backup)) fs.copyFileSync(sourceFile, backup);
       }
       if (Array.isArray(saved.downloads)) {
         const ids = new Set();
@@ -140,7 +156,7 @@ class BrowserStore {
       }
       if (this.data.workspaces.some(w => w.id === saved.activeWorkspace)) this.data.activeWorkspace = saved.activeWorkspace;
       const validWorkspace = id => this.data.workspaces.some(w => w.id === id) ? id : this.data.workspaces[0].id;
-      if (Array.isArray(saved.sessionTabs)) this.data.sessionTabs = saved.sessionTabs.filter(t => t && !t.private && (isWebURL(t.url) || INTERNAL_PAGES.some(p => t.url === `cherry://${p}`))).slice(0, 200).map(t => ({ id: typeof t.id === 'string' ? t.id : randomUUID(), url: t.url, title: String(t.title || t.url).slice(0, 300), workspaceId: validWorkspace(t.workspaceId), pinned: !!t.pinned, autoSuspend: !!t.autoSuspend }));
+      if (Array.isArray(saved.sessionTabs)) this.data.sessionTabs = saved.sessionTabs.map(t => t && typeof t.url === 'string' ? { ...t, url: normalizeInternalURL(t.url) } : t).filter(t => t && !t.private && (isWebURL(t.url) || INTERNAL_PAGES.some(p => t.url === `elysium://${p}`))).slice(0, 200).map(t => ({ id: typeof t.id === 'string' ? t.id : randomUUID(), url: t.url, title: String(t.title || t.url).slice(0, 300), workspaceId: validWorkspace(t.workspaceId), pinned: !!t.pinned, autoSuspend: !!t.autoSuspend }));
       else this.data.sessionTabs = this.data.savedTabs.map(url => ({ id: randomUUID(), url, title: url, workspaceId: this.data.activeWorkspace, pinned: false }));
       if (Array.isArray(saved.notes)) this.data.notes = saved.notes.filter(n => n && typeof n.id === 'string' && typeof n.body === 'string').slice(0, 1000).map(n => ({ id: n.id, title: String(n.title || 'โน้ต').slice(0, 200), body: n.body.slice(0, 100000), sourceURL: isWebURL(n.sourceURL) ? n.sourceURL : '', updatedAt: Number(n.updatedAt) || Date.now() }));
       if (Array.isArray(saved.postIts)) this.data.postIts = saved.postIts.filter(n => n && typeof n.id === 'string' && typeof n.body === 'string').slice(0, 300).map(n => ({
@@ -189,7 +205,7 @@ class BrowserStore {
   }
 
   save() {
-    if (this.readOnly) { this.writeError = 'โปรไฟล์นี้สร้างโดย Cherry รุ่นใหม่กว่า กรุณาใช้แอปรุ่นเดิม'; return; }
+    if (this.readOnly) { this.writeError = 'โปรไฟล์นี้สร้างโดย elysium-browser รุ่นใหม่กว่า กรุณาใช้แอปรุ่นเดิม'; return; }
     try {
       fs.mkdirSync(this.directory, { recursive: true });
       fs.writeFileSync(`${this.file}.tmp`, JSON.stringify(this.data, null, 2), 'utf8');
@@ -243,4 +259,4 @@ function computeLayout(width, height, { compact = false, panel = false, split = 
   return { sidebar, panelWidth, area, left: { ...area, y: top + splitHeader, height: Math.max(0, area.height - splitHeader), width: leftWidth }, right: { x: sidebar + leftWidth + divider, y: top + splitHeader, width: Math.max(0, area.width - leftWidth - divider), height: Math.max(0, area.height - splitHeader) }, dividerX: sidebar + leftWidth };
 }
 
-module.exports = { BrowserStore, resolveAddress, isWebURL, INTERNAL_PAGES, SEARCH_ENGINES, POST_IT_COLORS, SCHEMA_VERSION, FINISHED_DOWNLOAD_STATES, filterExistingDownloads, sanitizeTheme, computeLayout };
+module.exports = { BrowserStore, resolveAddress, isWebURL, normalizeInternalURL, INTERNAL_PAGES, SEARCH_ENGINES, POST_IT_COLORS, SCHEMA_VERSION, FINISHED_DOWNLOAD_STATES, filterExistingDownloads, sanitizeTheme, computeLayout };

@@ -3,7 +3,7 @@ const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
 
-const executablePath = path.resolve('release-youtube-fullscreen-stable/win-unpacked/Cherrywebbrowser.exe');
+const executablePath = path.resolve('release-youtube-fullscreen-stable/win-unpacked/elysium-browser.exe');
 const profile = fs.mkdtempSync(path.join(os.tmpdir(), 'cherry-youtube-fullscreen-'));
 const targetUrl = 'https://www.youtube.com/watch?v=jNQXAC9IVRw';
 const screenshotPath = path.resolve('docs/screenshots/youtube-fullscreen-1.3.9.png');
@@ -15,13 +15,13 @@ const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
   try {
     instance = await electron.launch({
       ...(process.env.CHERRY_VERIFY_SOURCE ? { args: [path.resolve('.')] } : { executablePath, args: [] }),
-      env: { ...process.env, CHERRY_TEST_PROFILE: profile },
+      env: { ...process.env, ELYSIUM_TEST_PROFILE: profile },
     });
     await instance.firstWindow();
     const page = instance.windows().find(item => item.url().endsWith('/index.html'));
-    if (!page) throw new Error('Cherry shell was not found');
+    if (!page) throw new Error('elysium-browser shell was not found');
     await page.waitForSelector('#tabs .tab');
-    const result = await page.evaluate(url => window.cherry.command('navigate', url), targetUrl);
+    const result = await page.evaluate(url => window.elysium.command('navigate', url), targetUrl);
     if (!result.ok) throw new Error(result.error || 'Navigation failed');
 
     let guest;
@@ -66,7 +66,7 @@ const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
       entered = await instance.evaluate(async ({ BrowserWindow, webContents }, id) => {
         const window = BrowserWindow.getAllWindows()[0];
         const contents = webContents.fromId(id);
-        const state = await window.webContents.executeJavaScript('window.cherry.getState()');
+        const state = await window.webContents.executeJavaScript('window.elysium.getState()');
         const view = window.contentView.children.find(item => item.webContents?.id === id);
         return {
           htmlFullscreen: state.ui.htmlFullscreen,
@@ -87,7 +87,7 @@ const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
     const stable = await instance.evaluate(async ({ BrowserWindow, webContents, desktopCapturer }, id) => {
       const window = BrowserWindow.getAllWindows()[0];
       const contents = webContents.fromId(id);
-      const state = await window.webContents.executeJavaScript('window.cherry.getState()');
+      const state = await window.webContents.executeJavaScript('window.elysium.getState()');
       const view = window.contentView.children.find(item => item.webContents?.id === id);
       const mediaSourceId = window.getMediaSourceId();
       const [width, height] = window.getSize();
@@ -147,7 +147,7 @@ const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
     for (let attempt = 0; attempt < 60; attempt += 1) {
       restored = await instance.evaluate(async ({ BrowserWindow }, id) => {
         const window = BrowserWindow.getAllWindows()[0];
-        const state = await window.webContents.executeJavaScript('window.cherry.getState()');
+        const state = await window.webContents.executeJavaScript('window.elysium.getState()');
         const view = window.contentView.children.find(item => item.webContents?.id === id);
         return { htmlFullscreen: state.ui.htmlFullscreen, nativeFullscreen: window.isFullScreen(), normalBounds: state.ui.bounds.left, viewBounds: view?.getBounds() };
       }, guest.id);
@@ -155,7 +155,7 @@ const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
       await delay(250);
     }
     if (restored.htmlFullscreen || restored.nativeFullscreen || JSON.stringify(restored.normalBounds) !== JSON.stringify(restored.viewBounds)) {
-      throw new Error(`Cherry layout did not restore: ${JSON.stringify(restored)}`);
+      throw new Error(`elysium-browser layout did not restore: ${JSON.stringify(restored)}`);
     }
     console.log(JSON.stringify({ ok: true, entered, stable, restored, screenshotPath }));
   } finally {

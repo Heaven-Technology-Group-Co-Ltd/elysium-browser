@@ -2,13 +2,13 @@ const {test,expect,_electron:electron}=require('@playwright/test');
 const fs=require('node:fs'),os=require('node:os'),path=require('node:path');
 
 for(const scale of [1,1.25])test(`native drag areas follow chrome without blocking controls at ${scale*100}% scale`,async()=>{
-  const profile=fs.mkdtempSync(path.join(os.tmpdir(),'cherry-drag-e2e-'));
+  const profile=fs.mkdtempSync(path.join(os.tmpdir(),'elysium-drag-e2e-'));
   const args=[`--force-device-scale-factor=${scale}`];
-  const app=await electron.launch({...process.env.CHERRY_EXECUTABLE?{executablePath:process.env.CHERRY_EXECUTABLE,args}:{args:[path.resolve('.'),...args]},env:{...process.env,CHERRY_TEST_PROFILE:profile}});
+  const app=await electron.launch({...process.env.ELYSIUM_EXECUTABLE?{executablePath:process.env.ELYSIUM_EXECUTABLE,args}:{args:[path.resolve('.'),...args]},env:{...process.env,ELYSIUM_TEST_PROFILE:profile}});
   try{
     await app.firstWindow();await expect.poll(()=>app.windows().some(p=>p.url().endsWith('/index.html'))).toBe(true);
     const page=app.windows().find(p=>p.url().endsWith('/index.html'));const errors=[];page.on('pageerror',e=>errors.push(e.message));
-    const call=(a,p)=>page.evaluate(([a,p])=>window.cherry.command(a,p),[a,p]);
+    const call=(a,p)=>page.evaluate(([a,p])=>window.elysium.command(a,p),[a,p]);
     const uncoveredHeader=()=>page.evaluate(()=>{
       const side=document.querySelector('.sidebar').getBoundingClientRect();
       const nav=document.querySelector('.navigation').getBoundingClientRect();
