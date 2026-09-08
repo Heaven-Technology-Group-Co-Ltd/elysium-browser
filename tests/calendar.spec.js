@@ -147,7 +147,7 @@ test('calendar native layout stays inside the window at desktop and compact size
   await expect(eventCell).toHaveClass(/selected/);
   const directory = path.resolve('work/calendar-qa'); fs.mkdirSync(directory, { recursive: true });
   for (const [width, height] of [[1920, 1080], [1440, 900], [1366, 768], [1024, 768]]) {
-    await app.evaluate(({ BrowserWindow }, size) => { const w = BrowserWindow.getAllWindows()[0]; w.setBounds({ x: 20, y: 20, ...size }); w.show(); w.focus(); }, { width, height });
+    await app.evaluate(({ BrowserWindow }, size) => { const w = BrowserWindow.getAllWindows()[0]; w.setContentSize(size.width, size.height); w.show(); w.focus(); }, { width, height });
     await expect.poll(() => page.evaluate(() => innerWidth)).toBe(width);
     await page.waitForTimeout(300);
     expect(await page.locator('#content').evaluate(el => el.scrollWidth <= el.clientWidth)).toBe(true);
