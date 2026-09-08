@@ -24,7 +24,7 @@ npm start
 - Notes & Clip บันทึกด้วยปุ่มบันทึกในเครื่อง มี source URL; มีบอร์ด Post-it 5 สีพร้อมปักหมุด และ Reminders ที่กำหนดวันเวลา ทำเสร็จ เลื่อนเตือน และส่ง Windows notification จริง; Reader อ่านข้อความจากหน้าปัจจุบันโดยไม่ต้องมี LLM โดยเลือกบล็อกเนื้อหาหลักจากคะแนนความหนาแน่นของข้อความและข้ามเมนู/sidebar (หลายคอลัมน์/iframe อาจยังอ่านไม่ครบ)
 - Theme Studio: 24 ธีม รวมภาพใหม่จากตัวละคร CHERRY : BODY ZERO และ CYRVOR จำนวน 12 ภาพ (เข้ม 8 / สว่าง 4) แต่ละธีมมีสีเมนู แท็บ ฟอร์ม ปฏิทิน และภาพของตัวเอง มีตัวกรองโทนสี ปุ่มสุ่มธีมใหม่ ภาพตัวอย่างพร้อมแถบสี และจำค่าหลังเปิดแอปใหม่
 - ภาพใหม่: Rose Glass, Stellar Library, Titan Sanctuary, Last Light Express, Jade Atelier, Ivory Orbit, Ember Workshop, Lilac Observatory, Cobalt Skyport, Graphite Snow, Scarlet Signal, Honey Cloud รวม wallpaper/thumbnail เพียง 2.7 MB ใช้งานออฟไลน์ ดู [ที่มาและคำสั่งสร้างภาพ](docs/NOVEL_THEMES.md)
-- ไอคอนโปรแกรมอนิเมะ elysium-browser สร้างใหม่พร้อมมุมโปร่งใสและ ICO หลายขนาด ดู [ที่มาและคำสั่งสร้างไอคอน](docs/APP_ICON.md)
+- ไอคอนโปรแกรมตรา elysium-browser (ตัว E สีทอง + ELYSIUM BROWSER) พร้อมมุมโปร่งใสและ ICO หลายขนาด ดู [ที่มาและคำสั่งสร้างไอคอน](docs/APP_ICON.md)
 - ปรับรูปโปรไฟล์/เพื่อน ความเข้มภาพ/แสง ปิดภาพ ลดการเคลื่อนไหว ย่อ sidebar และเลือกภาพพื้นหลังแยกจากสีธีมหรือนำเข้าภาพจากเครื่องได้
 - หน้า Home/New Tab ใช้ layout classic แบบรุ่น 1.3 พร้อม search, shortcuts, recent tabs/history, AI actions, workspaces และ Your Today จริง; ไม่มี artwork ไปเปลี่ยนหน้าตาเว็บปลายทาง
 - Memory Saver ปิด WebContents จริง แล้วโหลด URL ใหม่เมื่อกลับมา อัตโนมัติต้องเปิดส่วนกลางและอนุญาตรายแท็บ มี hostname exceptions; ป้องกัน active/split/audio/capture/download/iframe และงานค้างที่ตรวจพบ

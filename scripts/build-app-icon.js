@@ -3,7 +3,7 @@ const path = require('node:path');
 const sharp = require('sharp');
 
 const assets = path.resolve(__dirname, '../assets');
-const input = path.resolve(process.argv[2] || path.join(assets, 'elysium-anime-icon-source.png'));
+const input = path.resolve(process.argv[2] || path.join(assets, 'elysium-icon-source.png'));
 const masterOutput = path.join(assets, 'elysium-anime-icon.png');
 const pngOutput = path.join(assets, 'elysium.png');
 const icoOutput = path.join(assets, 'elysium.ico');
