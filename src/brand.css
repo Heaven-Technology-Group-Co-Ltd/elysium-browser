@@ -3,12 +3,13 @@
   display:flex;align-items:center;justify-content:space-between;gap:12px;
   min-height:84px;padding:8px 7px 24px;-webkit-app-region:drag;
 }
-.elysium-shell .brand-signature{display:flex;flex-direction:column;align-items:flex-start;gap:5px;min-width:0;user-select:none}
+.elysium-shell .brand-signature{display:flex;flex-direction:column;align-items:flex-start;gap:5px;flex:1;min-width:0;user-select:none}
 .elysium-shell .brand .brand-name{
-  display:block;margin:0;font-family:"Segoe UI Variable Display","Segoe UI",sans-serif;
-  font-size:35px;font-weight:750;line-height:1;letter-spacing:-.035em;color:var(--text);
+  display:flex;flex-direction:column;margin:0;font-family:"Segoe UI Variable Display","Segoe UI",sans-serif;
+  font-size:24px;font-weight:750;line-height:1.05;letter-spacing:-.02em;color:var(--text);
+  white-space:nowrap;
 }
-.elysium-shell .brand .brand-name>span{color:var(--cyan)}
+.elysium-shell .brand .brand-name>span+span{color:var(--cyan)}
 .elysium-shell .brand .brand-caption{
   display:block;padding-left:2px;font-family:"Segoe UI",sans-serif;
   font-size:8px;font-weight:600;line-height:12px;letter-spacing:.28em;color:var(--muted);
@@ -26,6 +27,6 @@
 .elysium-shell[data-sidebar=compact] .brand{min-height:64px;padding:8px 0 24px;justify-content:center}
 .elysium-shell[data-sidebar=compact] .brand-signature{display:none}
 .elysium-shell[data-sidebar=compact] .brand>#compact-toggle{margin:0}
-@media(max-width:1366px){.elysium-shell .brand{gap:8px;padding-left:6px;padding-right:5px}.elysium-shell .brand .brand-name{font-size:32px}}
+@media(max-width:1366px){.elysium-shell .brand{gap:8px;padding-left:6px;padding-right:5px}.elysium-shell .brand .brand-name{font-size:22px}}
 @media(max-height:800px){.elysium-shell .brand{min-height:74px;padding-top:6px;padding-bottom:16px}.elysium-shell[data-sidebar=compact] .brand{min-height:58px;padding-top:6px;padding-bottom:20px}}
 @media(prefers-reduced-motion:reduce){.elysium-shell .brand>#compact-toggle{transition:none}.elysium-shell .brand>#compact-toggle:active{transform:none}}
