@@ -11,6 +11,8 @@ const SEARCH_ENGINES = {
   bing: 'https://www.bing.com/search?q=',
 };
 const POST_IT_COLORS = ['yellow', 'blue', 'pink', 'mint', 'purple'];
+const SCHEMA_VERSION = 5;
+const FINISHED_DOWNLOAD_STATES = ['completed', 'interrupted'];
 
 function isWebURL(value) {
   try { return ['https:', 'http:'].includes(new URL(value).protocol); }
@@ -36,7 +38,7 @@ function resolveAddress(input, engine = 'google') {
 
 function defaults() {
   return {
-    schemaVersion: 4, calendarEvents: [], bookmarks: [], history: [], savedTabs: [], sessionTabs: [],
+    schemaVersion: SCHEMA_VERSION, calendarEvents: [], bookmarks: [], history: [], savedTabs: [], sessionTabs: [], downloads: [],
     workspaces: [{ id: 'personal', name: 'Personal', color: '#2f6bff' }], activeWorkspace: 'personal', notes: [], postIts: [], reminders: [], todos: [],
     settings: { searchEngine: 'google', restoreTabs: true, compactSidebar: false, memorySaver: false, suspendMinutes: 20, memoryExceptions: [], autoUpdate: true,
       theme: { variant: 'midnight', character: 'cherry', background: 'city', graphics: true, motion: true, glow: 45, art: 100 },
@@ -61,9 +63,9 @@ class BrowserStore {
     this.writeError = null;
     try {
       const saved = JSON.parse(fs.readFileSync(this.file, 'utf8'));
-      if (saved.schemaVersion > 4) { this.readOnly = true; throw new Error('Newer profile schema'); }
-      if (!saved.schemaVersion || saved.schemaVersion < 4) {
-        const backup = `${this.file}.before-schema-4`;
+      if (saved.schemaVersion > SCHEMA_VERSION) { this.readOnly = true; throw new Error('Newer profile schema'); }
+      if (!saved.schemaVersion || saved.schemaVersion < SCHEMA_VERSION) {
+        const backup = `${this.file}.before-schema-${SCHEMA_VERSION}`;
         if (!fs.existsSync(backup)) fs.copyFileSync(this.file, backup);
       }
       if (!saved.schemaVersion || saved.schemaVersion < 2) {
@@ -73,6 +75,26 @@ class BrowserStore {
       if (!saved.schemaVersion || saved.schemaVersion < 3) {
         const backup = `${this.file}.before-schema-3`;
         if (!fs.existsSync(backup)) fs.copyFileSync(this.file, backup);
+      }
+      if (Array.isArray(saved.downloads)) {
+        const ids = new Set();
+        // Persist only finished, non-private records; live items resume from scratch.
+        for (const d of saved.downloads) {
+          if (!d || typeof d.id !== 'string' || !d.id || ids.has(d.id)) continue;
+          if (d.private || !FINISHED_DOWNLOAD_STATES.includes(d.state) || !isWebURL(d.url)) continue;
+          this.data.downloads.push({
+            id: d.id,
+            filename: String(d.filename || 'ไฟล์').slice(0, 300),
+            url: d.url,
+            path: String(d.path || '').slice(0, 2048),
+            received: Number.isFinite(d.received) ? Math.max(0, d.received) : 0,
+            total: Number.isFinite(d.total) ? Math.max(0, d.total) : 0,
+            state: d.state,
+            createdAt: Number(d.createdAt) || Date.now(),
+          });
+          ids.add(d.id);
+          if (this.data.downloads.length >= 200) break;
+        }
       }
       for (const field of ['bookmarks', 'history']) {
         if (Array.isArray(saved[field])) this.data[field] = saved[field].filter(item => item && typeof item.id === 'string' && typeof item.title === 'string' && isWebURL(item.url)).slice(0, 2000);
@@ -210,4 +232,4 @@ function computeLayout(width, height, { compact = false, panel = false, split = 
   return { sidebar, panelWidth, area, left: { ...area, y: top + splitHeader, height: Math.max(0, area.height - splitHeader), width: leftWidth }, right: { x: sidebar + leftWidth + divider, y: top + splitHeader, width: Math.max(0, area.width - leftWidth - divider), height: Math.max(0, area.height - splitHeader) }, dividerX: sidebar + leftWidth };
 }
 
-module.exports = { BrowserStore, resolveAddress, isWebURL, INTERNAL_PAGES, SEARCH_ENGINES, POST_IT_COLORS, sanitizeTheme, computeLayout };
+module.exports = { BrowserStore, resolveAddress, isWebURL, INTERNAL_PAGES, SEARCH_ENGINES, POST_IT_COLORS, SCHEMA_VERSION, FINISHED_DOWNLOAD_STATES, sanitizeTheme, computeLayout };

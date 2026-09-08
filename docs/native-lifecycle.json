@@ -1,7 +1,7 @@
 {
   "method": "Direct Electron launch, no Playwright/CDP, real WebContents disposal and reload",
-  "version": "1.3.2",
-  "startupMs": 263,
+  "version": "1.4.0",
+  "startupMs": 314,
   "startupScope": "main test entry start to visible New Tab search and decoded local images; excludes OS process bootstrap",
   "platform": "win32",
   "arch": "x64",
@@ -11,43 +11,43 @@
       "label": "baseline-one-web-tab",
       "webContents": 2,
       "processes": 5,
-      "workingSetKB": 411248
+      "workingSetKB": 444468
     },
     {
       "label": "round-1-20-tabs",
       "webContents": 21,
       "processes": 24,
-      "workingSetKB": 2190956
+      "workingSetKB": 2272696
     },
     {
       "label": "round-1-closed-to-baseline",
       "webContents": 2,
       "processes": 6,
-      "workingSetKB": 566204
+      "workingSetKB": 605680
     },
     {
       "label": "round-2-20-tabs",
       "webContents": 21,
       "processes": 25,
-      "workingSetKB": 2416720
+      "workingSetKB": 2500216
     },
     {
       "label": "round-2-closed-to-baseline",
       "webContents": 2,
       "processes": 6,
-      "workingSetKB": 587692
+      "workingSetKB": 620132
     },
     {
       "label": "round-3-20-tabs",
       "webContents": 21,
       "processes": 25,
-      "workingSetKB": 2433096
+      "workingSetKB": 2521088
     },
     {
       "label": "round-3-closed-to-baseline",
       "webContents": 2,
       "processes": 6,
-      "workingSetKB": 604628
+      "workingSetKB": 639628
     }
   ],
   "checks": [

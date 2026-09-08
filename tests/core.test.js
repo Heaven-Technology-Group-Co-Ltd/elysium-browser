@@ -69,13 +69,12 @@ test('schema migration preserves old profile, bookmarks and sessions without pri
   const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'cherry-core-'));
   t.after(() => removeTestDirectory(directory));
   const file = path.join(directory, 'cherry-data.json');
-  const old = JSON.stringify({bookmarks:[{id:'b',title:'เดิม',url:'https://example.com/',folder:'Reading'}],savedTabs:['https://example.com/'],settings:{restoreTabs:false,searchEngine:'bing'}});
+  const old = JSON.stringify({schemaVersion:4,bookmarks:[{id:'b',title:'เดิม',url:'https://example.com/',folder:'Reading'}],savedTabs:['https://example.com/'],settings:{restoreTabs:false,searchEngine:'bing'}});
   fs.writeFileSync(file,old);
   const migrated = new BrowserStore(directory);
-  assert.equal(fs.readFileSync(`${file}.before-schema-2`,'utf8'),old);
-  assert.equal(fs.readFileSync(`${file}.before-schema-3`,'utf8'),old);
-  assert.equal(fs.readFileSync(`${file}.before-schema-4`,'utf8'),old);
-  assert.equal(migrated.data.schemaVersion,4);
+  assert.equal(fs.readFileSync(`${file}.before-schema-5`,'utf8'),old);
+  assert.equal(migrated.data.schemaVersion,5);
+  assert.deepEqual(migrated.data.downloads,[]);
   assert.equal(migrated.data.sessionTabs[0].url,'https://example.com/');
   assert.equal(migrated.data.settings.restoreTabs,false);
   assert.equal(migrated.data.bookmarks[0].folder,'Reading');
@@ -83,6 +82,25 @@ test('schema migration preserves old profile, bookmarks and sessions without pri
   migrated.save();assert.equal(new BrowserStore(directory).data.sessionTabs.length,1);
   const future=JSON.stringify({schemaVersion:999,bookmarks:[]});fs.writeFileSync(file,future);
   const unknown=new BrowserStore(directory);unknown.save();assert.equal(fs.readFileSync(file,'utf8'),future);assert.ok(unknown.writeError);
+});
+
+test('finished non-private downloads persist across restarts and unsafe records are dropped', t => {
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'cherry-core-'));
+  t.after(() => removeTestDirectory(directory));
+  const file = path.join(directory, 'cherry-data.json');
+  fs.writeFileSync(file, JSON.stringify({ schemaVersion: 5, downloads: [
+    { id: 'done-1', filename: 'report.pdf', url: 'https://example.com/report.pdf', path: 'C:/dl/report.pdf', received: 100, total: 100, state: 'completed', createdAt: 1 },
+    { id: 'bad-url', filename: 'x', url: 'javascript:evil', path: '', state: 'completed', createdAt: 1 },
+    { id: 'private-1', filename: 'secret.zip', url: 'https://example.com/secret.zip', path: '', private: true, state: 'completed', createdAt: 1 },
+    { id: 'live-1', filename: 'half.bin', url: 'https://example.com/half.bin', path: '', state: 'progressing', createdAt: 1 },
+    { id: 'done-1', filename: 'dup.pdf', url: 'https://example.com/dup.pdf', path: '', state: 'completed', createdAt: 1 },
+    null,
+  ] }));
+  const restored = new BrowserStore(directory);
+  assert.deepEqual(restored.data.downloads.map(d => d.id), ['done-1']);
+  assert.equal(restored.data.downloads[0].path, 'C:/dl/report.pdf');
+  restored.save();
+  assert.deepEqual(new BrowserStore(directory).data.downloads.map(d => d.id), ['done-1']);
 });
 
 test('post-its and reminders persist across restarts and sanitize unsafe fields', t => {

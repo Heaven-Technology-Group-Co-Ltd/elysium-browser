@@ -51,7 +51,7 @@ test('calendar reminders fire once, catch ongoing events, and skip disabled or e
   assert.equal(dueEvents([{ ...event, reminderMinutes: null }], due).length, 0);
 });
 
-test('schema 4 preserves organizer data and calendar state across restarts, ignoring corrupt events', t => {
+test('schema 5 preserves organizer data and calendar state across restarts, ignoring corrupt events', t => {
   const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'cherry-calendar-core-'));
   t.after(() => {
     assert.equal(path.dirname(path.resolve(directory)), path.resolve(os.tmpdir()));
@@ -62,7 +62,7 @@ test('schema 4 preserves organizer data and calendar state across restarts, igno
   const old = JSON.stringify({ schemaVersion: 3, notes: [{ id: 'n', title: 'เดิม', body: 'อย่าหาย' }], reminders: [{ id: 'r', title: 'งานเก่า', dueAt: 1234 }], bookmarks: [{ id: 'b', title: 'เว็บ', url: 'https://example.com/' }] });
   fs.writeFileSync(file, old);
   const store = new BrowserStore(directory);
-  assert.equal(fs.readFileSync(`${file}.before-schema-4`, 'utf8'), old);
+  assert.equal(fs.readFileSync(`${file}.before-schema-5`, 'utf8'), old);
   const event = { ...timed(), id: 'a', notifiedAt: 123, createdAt: 1, updatedAt: 2 };
   store.data.calendarEvents.push(event, { ...event }, { id: 'bad', title: 'bad', allDay: true, startDate: 'oops' });
   store.data.sessionTabs.push({ id: 'c', title: 'Calendar', url: 'cherry://calendar' });

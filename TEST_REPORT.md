@@ -1,5 +1,7 @@
 # Cherry Browser — ผลตรวจรับ
 
+เวอร์ชัน 1.4.0 (8 กันยายน 2026): ตรวจ source `npm run check` ผ่าน, unit 19/19 (เพิ่มเคส downloads sanitize/persist และ migration schema 4 → 5 พร้อม backup `.before-schema-5`; แก้ชื่อเคส calendar เป็น schema 5) รัน `test:e2e` ได้ 16/24 — 7 เคสตกล้วนที่ helper `capture()` เพราะขนาดหน้าต่างจริงเพี้ยน 2px บนเครื่องนี้ (1442 แทน 1440 เป็นต้น) และเคส downloads pause/resume ตกที่จังหวะ pause แข่งกับสตรีม 2MB (~0.6s) พิสูจน์แล้วว่า baseline 1.3.13 ที่ไม่แตะโค้ดก็ตกแบบเดียวกันทั้ง 2 อาการ จึงไม่ใช่ regression จากงานนี้ `test:native` ผ่าน (20-tab lifecycle, suspend/dispose, download guard ผ่าน DownloadItem จริง) เหลือ build/verify แพ็กเกจก่อนปิดเวอร์ชัน
+
 อัปเดต 1.3.13 (7 กันยายน 2026): เว็บไซต์ได้รับตัวตน `CherryBrowserSystem/1.3.13` ทั้งใน HTTP User-Agent และ `navigator.userAgent` โดยไม่มี token `Electron/44.2.0` พร้อมคง `Chrome/<runtime>` และ Safari compatibility tokens เพื่อไม่ทำลายเว็บไซต์ที่ตรวจ Chromium หน้า Settings แสดงชื่อ `Cherry Browser System` และเวอร์ชัน runtime ตรงกัน
 
 ตรวจ source identity 1/1, unit 18/18 และ regression Calendar/audio/fullscreen 3/3 ผ่าน ตรวจ packaged EXE 4/4, FileVersion 1.3.13, ProductVersion 1.3.13.0 และ source/assets 85 ไฟล์ตรงกับ app.asar ทุก byte Portable 111,288,819 bytes อยู่ใน `release-browser-identity` เปิด WhatIsMyBrowser จริงสำเร็จ: เว็บไม่แสดง Electron แล้วและอ่าน User-Agent เต็มเป็น `Chrome/152.0.7977.76 ... CherryBrowserSystem/1.3.13` แต่ฐานข้อมูลของเว็บจัดชื่อด้านบนเป็น Chrome 152 การตัด Chrome token ออกทำให้เว็บจัดผิดเป็น Safari/Chromium จึงคง token ที่เข้ากันได้ไว้

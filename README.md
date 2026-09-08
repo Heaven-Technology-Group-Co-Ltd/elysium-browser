@@ -1,4 +1,4 @@
-# Cherrywebbrowser 1.3.13
+# Cherrywebbrowser 1.4.0
 
 แอปเว็บเบราว์เซอร์ Windows ธีมอนิเมะ Cherry ใช้ Electron 44.2.0 / Chromium / WebContentsView จากโปรเจกต์เดิม หน้าต้อนรับเป็น DOM จริง แยกจากเว็บไซต์ภายนอก
 
@@ -14,14 +14,14 @@ npm start
 ## สิ่งที่ใช้ได้
 
 - Calendar ภายในแอป: เมนู **Calendar · ปฏิทิน** หรือ `cherry://calendar` มีตารางเดือนและรายการรายเดือน ค้นหาชื่อ/สถานที่/รายละเอียด ไปยังเดือนที่เลือก และปุ่มวันนี้ เพิ่ม/แก้ไข/ลบนัดหมาย กำหนดเวลาเริ่ม–สิ้นสุด นัดหมายทั้งวันหรือข้ามวัน และ 5 หมวดสี เก็บข้อมูลในเครื่องโดยไม่ต้องมีบัญชีหรืออินเทอร์เน็ต
-- Calendar แจ้งผ่าน Windows ขณะเปิด Cherry ตามเวลาเครื่อง เลือกไม่เตือน/เมื่อถึงเวลา/ก่อน 5, 15, 30, 60 นาทีหรือ 1 วัน นัดหมายทั้งวันนับเวลาเตือนจาก 09:00 ของวันเริ่มต้น เมื่อเปิดใหม่จะเตือนรายการที่ถึงเวลาและยังไม่สิ้นสุด ไม่เตือนซ้ำรายการเดิม ข้อมูลเดิมสำรองเป็น `cherry-data.json.before-schema-4` ก่อนย้ายเป็น schema 4
+- Calendar แจ้งผ่าน Windows ขณะเปิด Cherry ตามเวลาเครื่อง เลือกไม่เตือน/เมื่อถึงเวลา/ก่อน 5, 15, 30, 60 นาทีหรือ 1 วัน นัดหมายทั้งวันนับเวลาเตือนจาก 09:00 ของวันเริ่มต้น เมื่อเปิดใหม่จะเตือนรายการที่ถึงเวลาและยังไม่สิ้นสุด ไม่เตือนซ้ำรายการเดิม ข้อมูลเดิมสำรองเป็น `cherry-data.json.before-schema-5` ก่อนย้ายเป็น schema 5
 - Tabs, URL/search ไทย/อังกฤษ, back/forward/reload/stop, favicon/title, drag reorder, pin/mute/reopen, private tabs และ session restore
 - เว็บไซต์ได้รับ User-Agent `CherryBrowserSystem/<version>` โดยไม่มี `Electron/<version>` และยังมี Chrome compatibility token เว็บตรวจเบราว์เซอร์ที่ยังไม่รู้จัก Cherry อาจจัดกลุ่มเป็น Chrome แต่ดูชื่อ Cherry ได้ในรายละเอียด User-Agent
-- Bookmarks พร้อมโฟลเดอร์, history พร้อมค้นหา/ล้างตามช่วงเวลา, downloads พร้อมปลายทาง/progress/pause/resume/cancel จริง (resume ขึ้นกับ runtime/เซิร์ฟเวอร์)
+- Bookmarks พร้อมโฟลเดอร์, history พร้อมค้นหา/ล้างตามช่วงเวลา, downloads พร้อมปลายทาง/progress/pause/resume/cancel จริง (resume ขึ้นกับ runtime/เซิร์ฟเวอร์) รายการที่เสร็จในโหมดปกติจะอยู่ในเครื่องข้ามการเปิดแอป (schema 5) ส่วน Private ไม่ถูกเก็บ
 - Workspaces แยกกลุ่มแท็บ โดย cookies/session ปกติยังใช้ร่วมกัน
 - Split View สองเว็บจริง คลิกเว็บหรือหัว L/R เพื่อเลือกด้าน active ปรับสัดส่วนได้ แผงด้านข้างลดพื้นที่เว็บจริง
 - Command palette ค้นหาคำสั่ง/แท็บ/บุ๊กมาร์กด้วย Ctrl+K
-- Notes & Clip บันทึกด้วยปุ่มบันทึกในเครื่อง มี source URL; มีบอร์ด Post-it 5 สีพร้อมปักหมุด และ Reminders ที่กำหนดวันเวลา ทำเสร็จ เลื่อนเตือน และส่ง Windows notification จริง; Reader อ่านข้อความที่มองเห็นจากหน้าปัจจุบันโดยไม่ต้องมี LLM
+- Notes & Clip บันทึกด้วยปุ่มบันทึกในเครื่อง มี source URL; มีบอร์ด Post-it 5 สีพร้อมปักหมุด และ Reminders ที่กำหนดวันเวลา ทำเสร็จ เลื่อนเตือน และส่ง Windows notification จริง; Reader อ่านข้อความจากหน้าปัจจุบันโดยไม่ต้องมี LLM โดยเลือกบล็อกเนื้อหาหลักจากคะแนนความหนาแน่นของข้อความและข้ามเมนู/sidebar (หลายคอลัมน์/iframe อาจยังอ่านไม่ครบ)
 - Theme Studio: 24 ธีม รวมภาพใหม่จากตัวละคร CHERRY : BODY ZERO และ CYRVOR จำนวน 12 ภาพ (เข้ม 8 / สว่าง 4) แต่ละธีมมีสีเมนู แท็บ ฟอร์ม ปฏิทิน และภาพของตัวเอง มีตัวกรองโทนสี ปุ่มสุ่มธีมใหม่ ภาพตัวอย่างพร้อมแถบสี และจำค่าหลังเปิดแอปใหม่
 - ภาพใหม่: Rose Glass, Stellar Library, Titan Sanctuary, Last Light Express, Jade Atelier, Ivory Orbit, Ember Workshop, Lilac Observatory, Cobalt Skyport, Graphite Snow, Scarlet Signal, Honey Cloud รวม wallpaper/thumbnail เพียง 2.7 MB ใช้งานออฟไลน์ ดู [ที่มาและคำสั่งสร้างภาพ](docs/NOVEL_THEMES.md)
 - ไอคอนโปรแกรมอนิเมะ Cherry สร้างใหม่พร้อมมุมโปร่งใสและ ICO หลายขนาด ดู [ที่มาและคำสั่งสร้างไอคอน](docs/APP_ICON.md)
@@ -47,6 +47,12 @@ OAuth ตัวเลือกนี้มีไว้สำหรับ OpenAI-
 AI/Translate แสดงข้อความที่จะส่งจาก **หน้าปัจจุบันหรือข้อความที่เลือก** ให้ติ๊กยินยอมทุกครั้ง ไม่อ่าน form values/cookies/storage และไม่มี tools หรือสิทธิ์ควบคุมเครื่อง ผลลัพธ์เป็น plain text บันทึกเป็นโน้ตได้ Translate ใช้ provider เดียวกัน ส่วน Reader ทำงานโดยไม่ใช้ AI
 
 Weather เลือก Open-Meteo และระบุเมืองใน Settings จากนั้นกด widget อากาศบน New Tab เพื่อดึงข้อมูลจริง ไม่ขอตำแหน่งอัตโนมัติ ไม่แสดงอุณหภูมิจนกว่าจะตั้งค่าและดึงข้อมูลสำเร็จ
+
+## อัปเดตแอป
+
+เปิด **การตั้งค่า → อัปเดตแอป** เพื่อตรวจเวอร์ชันใหม่จาก GitHub Releases ของ `Heaven-Technology-Group-Co-Ltd/elysium-browser` กดตรวจเองหรือเปิด "ตรวจสอบอัตโนมัติเมื่อเปิดแอป" (ตรวจหนึ่งครั้งหลังเปิด ~30 วินาที ไม่ดาวน์โหลดเอง) เมื่อมีเวอร์ชันใหม่ให้กดดาวน์โหลดก่อน แล้วกดรีสตาร์ทเพื่อติดตั้ง
+
+เวอร์ชัน Setup (NSIS) รองรับติดตั้งอัปเดตอัตโนมัติผ่าน electron-updater ส่วนเวอร์ชัน Portable ไม่รองรับ ให้ดาวน์โหลดไฟล์ใหม่จากหน้า release แทน และขณะรันจากซอร์สโค้ด (`npm start`) จะแสดงสถานะ dev เท่านั้น
 
 ## คีย์ลัด
 
@@ -91,15 +97,15 @@ Remove-Item Env:CHERRY_EXECUTABLE
 
 ## ข้อมูลและ rollback
 
-ใช้ตำแหน่งเดิม `%APPDATA%/Cherrywebbrowser` โดยทั่วไป `cherry-data.json` เก็บข้อมูลแอป Cookies/cache อยู่ใน `persist:cherry-web` Schema 3 สำรอง JSON เดิมเป็น `cherry-data.json.before-schema-3` ก่อนเพิ่ม Post-it/Reminder และคง backup schema 2 กับ legacy savedTabs ไว้ โปรไฟล์จาก schema ใหม่กว่าจะไม่ถูกเขียนทับ
+ใช้ตำแหน่งเดิม `%APPDATA%/Cherrywebbrowser` โดยทั่วไป `cherry-data.json` เก็บข้อมูลแอป Cookies/cache อยู่ใน `persist:cherry-web` Schema 5 สำรอง JSON เดิมเป็น `cherry-data.json.before-schema-5` ก่อนเก็บประวัติ downloads ที่เสร็จแล้ว และคง backup เก่า (schema 2/3/4 และ legacy savedTabs) ไว้ โปรไฟล์จาก schema ใหม่กว่าจะไม่ถูกเขียนทับ
 
 Source ก่อนแก้อยู่ที่ `backups/before-anime-20260906-195809` และ build UI 1.4.0 ที่ `release-ui-handoff` (workspace ไม่มี `.git`) หากต้อง rollback ให้ปิดแอปและสำรองทั้งโปรไฟล์ปัจจุบันก่อน เปิดรุ่นเดิมด้วย **สำเนาโปรไฟล์แยก** ผ่าน `CHERRY_TEST_PROFILE` หากต้องคืน JSON เก่า ให้คัดลอก `.before-schema-3` ไปยังสำเนานั้น ข้อมูล Post-it/Reminder ที่สร้างหลังย้าย schema จะไม่อยู่ใน JSON เก่า อย่าลบหรือเขียนทับโปรไฟล์หลักเพื่อ rollback
 
 ## ข้อจำกัด
 
-Restore คืน URL/workspace/pin/ตัวเลือกพักแท็บ ไม่คืน DOM/form/navigation stack ทั้งหมด Notes ต้องกดบันทึก Reminders จะแจ้งเมื่อแอปกำลังทำงานอยู่ (หากปิดเครื่อง/ปิดแอป ระบบจะแจ้งหลังเปิด Cherry ครั้งถัดไป) Memory Saver โหลดหน้าใหม่และรับประกันการกู้ฟอร์มทุกเว็บไม่ได้ Download list อยู่เฉพาะการเปิดแอปครั้งนั้น ไฟล์ที่ดาวน์โหลดยังคงอยู่ Private ไม่เข้า normal history/restore แต่ไฟล์/บุ๊กมาร์กที่สั่งเก็บยังอยู่ และไม่ซ่อนการเชื่อมต่อจากเว็บหรือเครือข่าย
+Restore คืน URL/workspace/pin/ตัวเลือกพักแท็บ ไม่คืน DOM/form/navigation stack ทั้งหมด Notes ต้องกดบันทึก Reminders จะแจ้งเมื่อแอปกำลังทำงานอยู่ (หากปิดเครื่อง/ปิดแอป ระบบจะแจ้งหลังเปิด Cherry ครั้งถัดไป) Memory Saver โหลดหน้าใหม่และรับประกันการกู้ฟอร์มทุกเว็บไม่ได้ รายการดาวน์โหลดที่เสร็จแล้วจะอยู่ข้ามการเปิดแอป (เฉพาะโหมดปกติ ไม่รวม Private) แต่ดาวน์โหลดค้าง/pause ไม่ได้กู้ต่อหลังปิดแอป ไฟล์ที่ดาวน์โหลดยังคงอยู่ Private ไม่เข้า normal history/restore แต่ไฟล์/บุ๊กมาร์กที่สั่งเก็บยังอยู่ และไม่ซ่อนการเชื่อมต่อจากเว็บหรือเครือข่าย
 
-Reader อาจอ่านหลายคอลัมน์/iframe ได้ไม่ครบ ยังไม่มี ad/tracker blocking rule engine, Chrome extension manager, password manager, account sync หรือ auto-update ไม่รับรอง OAuth/DRM/ทุกเว็บไซต์ EXE ยังไม่ได้ลงลายเซ็นดิจิทัล
+Reader เลือกบล็อกเนื้อหาหลักอัตโนมัติแต่ยังอ่านหลายคอลัมน์/iframe ได้ไม่ครบ ยังไม่มี ad/tracker blocking rule engine, Chrome extension manager, password manager, account sync ไม่รับรอง OAuth/DRM/ทุกเว็บไซต์ EXE ยังไม่ได้ลงลายเซ็นดิจิทัล
 
 ดูผลตรวจรายข้อใน [TEST_REPORT.md](TEST_REPORT.md) และ asset mapping ใน [docs/ARTWORK.md](docs/ARTWORK.md)
 

@@ -201,7 +201,11 @@ test('downloads show actual progress and support runtime pause/resume',async()=>
  await navigate(`${base}/`);const savePath=path.join(profile,'cherry-test.bin');await instance.evaluate(({session,webContents},{url,savePath})=>{session.fromPartition('persist:cherry-web').once('will-download',(_e,item)=>item.setSavePath(savePath));webContents.getAllWebContents().find(w=>w.getURL()===url).downloadURL(url+'download');},{url:`${base}/`,savePath});
  await expect.poll(async()=>(await state()).downloads[0]?.received>0).toBe(true);const d=(await state()).downloads[0];await call('pause-download',d.id);await expect.poll(async()=>(await state()).downloads[0].paused).toBe(true);
  await call('resume-download',d.id);await expect.poll(async()=>(await state()).downloads[0].state).toBe('completed');expect(fs.statSync(savePath).size).toBe(2097152);
- await call('panel','downloads');await expect(page.locator('#panel-content')).toContainText('cherry-test.bin');await expect(page.locator('#panel-content')).toContainText(savePath);
+  await call('panel','downloads');await expect(page.locator('#panel-content')).toContainText('cherry-test.bin');await expect(page.locator('#panel-content')).toContainText(savePath);
+  await instance.close();instance=null;await launch();
+  const persisted=(await state()).downloads.find(d=>d.filename==='cherry-test.bin');
+  expect(persisted).toMatchObject({state:'completed',total:2097152,path:savePath});
+  await call('panel','downloads');await expect(page.locator('#panel-content')).toContainText('cherry-test.bin');await expect(page.locator('#panel-content')).toContainText(savePath);
 });
 
 test('real audible playback, pause, mute and closing a playing tab do not crash the main process',async()=>{

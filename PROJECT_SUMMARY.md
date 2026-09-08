@@ -8,12 +8,12 @@
 ## 1. Metadata & Project Overview
 
 - **Project Name:** Cherrywebbrowser (cherrywebbrowser)
-- **Version:** 1.3.13
+- **Version:** 1.4.0
 - **Application Type:** Desktop Web Browser (Windows Portable)
 - **Primary Runtime:** Electron 44.2.0 (Chromium engine)
 - **Architectural Style:** Multi-process Electron app using WebContentsView (separated UI shell and external content)
 - **License:** Apache-2.0 (Source code); Custom copyrighted assets for Character/Brand (CHERRY : BODY ZERO & CYRVOR)
-- **Local Profile Location:** %APPDATA%/Cherrywebbrowser (Storage file: cherry-data.json, Schema v4)
+- **Local Profile Location:** %APPDATA%/Cherrywebbrowser (Storage file: cherry-data.json, Schema v5)
 - **Target OS:** Windows 10/11 (x64)
 
 ---
@@ -84,7 +84,8 @@ Testing & Quality:
 
 ### 4.1. Web Browsing & Navigation
 - **Tabs & Workspaces:** Full tab lifecycle management (Open, Close, Reorder, Pin, Mute, Reopen closed tabs, Private mode). Tabs are categorized into configurable **Workspaces**.
-- **Split View:** Real split-screen rendering allowing two independent WebContentsView instances with adjustable ratio.
+  - **Split View:** Real split-screen rendering allowing two independent WebContentsView instances with adjustable ratio.
+  - **Download Hub:** Real download lifecycle (destination, progress, pause/resume/cancel). Finished records in normal mode persist in cherry-data.json across restarts; private downloads are excluded.
 - **Address Bar & Omnibox:** Supports quick search (Google, DuckDuckGo, Bing) and internal navigation schemas (cherry://home, cherry://calendar, cherry://themes, etc.).
 - **Command Palette (Ctrl+K):** Fast fuzzy search across open tabs, history, bookmarks, and browser commands.
 - **Memory Saver:** Detects idle tabs based on user inactivity threshold (default: 20 min) and suspends their WebContents to free RAM, with auto-resume on focus. Protects tabs with audio, pinned state, split-view, or pending downloads.
@@ -99,6 +100,10 @@ Testing & Quality:
   - Post-it style boards (5 pastel colors) and pin support.
 - **Web Clipper & Reader Mode:**
   - Heuristic text and article extractor without external AI/network dependencies.
+  - Root selection scores article/main/content containers by text density and link density, skipping nav/sidebar/chrome blocks.
+- **Auto-Update (src/updater.js):**
+  - electron-updater against GitHub Releases (Heaven-Technology-Group-Co-Ltd/elysium-browser).
+  - Manual check + opt-in 30s post-launch check from Settings; Setup builds install via quitAndInstall, Portable/dev fall back to the releases page.
 
 ### 4.3. AI Provider Integration (Privacy-First)
 - **Supported Providers:**
@@ -165,13 +170,16 @@ CYRVOR-CherryBrowser-main/
 
 ## 6. Key Data Schemas (cherry-data.json)
 
-The configuration and personal data file adheres to **Schema Version 4**:
+The configuration and personal data file adheres to **Schema Version 5**:
 
 `json
 {
-  "schemaVersion": 4,
+  "schemaVersion": 5,
   "bookmarks": [
     { "id": "uuid", "title": "string", "url": "https://...", "createdAt": 1700000000000 }
+  ],
+  "downloads": [
+    { "id": "uuid", "filename": "file.zip", "url": "https://...", "path": "C:/...", "received": 1024, "total": 2048, "state": "completed", "createdAt": 1700000000000 }
   ],
   "history": [
     { "id": "uuid", "title": "string", "url": "https://...", "visitedAt": 1700000000000 }

@@ -4,7 +4,7 @@ const http = require('node:http');
 const path = require('node:path');
 const { pathToFileURL } = require('node:url');
 const { randomUUID } = require('node:crypto');
-const { BrowserStore, resolveAddress, isWebURL, INTERNAL_PAGES, SEARCH_ENGINES, POST_IT_COLORS, sanitizeTheme, computeLayout } = require('./core');
+const { BrowserStore, resolveAddress, isWebURL, INTERNAL_PAGES, SEARCH_ENGINES, POST_IT_COLORS, SCHEMA_VERSION, FINISHED_DOWNLOAD_STATES, sanitizeTheme, computeLayout } = require('./core');
 const { checkProvider, requestAI, getWeather, providerURL } = require('./providers');
 const { createOAuthAttempt, exchangeAuthorizationCode, oauthFingerprint, refreshAccessToken, safeStateEqual, validateOAuthConfig } = require('./oauth');
 const { EXTRACT_PAGE, CAN_SUSPEND } = require('./page-extraction');
@@ -830,11 +830,11 @@ async function command(action, payload) {
     }
     case 'cancel-download': {
       const download = downloads.find(item => item.id === payload);
-      if (download && ['progressing', 'interrupted'].includes(download.state)) download.item.cancel();
+      if (download && ['progressing', 'interrupted'].includes(download.state) && download.item) download.item.cancel();
       break;
     }
-    case 'pause-download': { const d = downloads.find(d => d.id === payload); if (d?.state === 'progressing') { d.item.pause(); d.paused = true; d.canResume = d.item.canResume(); } break; }
-    case 'resume-download': { const d = downloads.find(d => d.id === payload); if (d && (d.paused || d.state === 'interrupted') && d.item.canResume()) { d.item.resume(); d.paused = false; } else throw new Error('เซิร์ฟเวอร์หรือรายการนี้ไม่รองรับดาวน์โหลดต่อ'); break; }
+    case 'pause-download': { const d = downloads.find(d => d.id === payload); if (d?.state === 'progressing' && d.item) { d.item.pause(); d.paused = true; d.canResume = d.item.canResume(); } break; }
+    case 'resume-download': { const d = downloads.find(d => d.id === payload); if (d?.item && (d.paused || d.state === 'interrupted') && d.item.canResume()) { d.item.resume(); d.paused = false; } else throw new Error('เซิร์ฟเวอร์หรือรายการนี้ไม่รองรับดาวน์โหลดต่อ'); break; }
     case 'pin-tab': { const tab = tabs.find(t => t.id === payload); if (tab) { tab.pinned = !tab.pinned; saveTabs(); } break; }
     case 'mute-tab': { const tab = tabs.find(t => t.id === payload); if (tab?.view) { tab.muted = !tab.muted; tab.view.webContents.setAudioMuted(tab.muted); } break; }
     case 'reorder-tab': {
@@ -1169,6 +1169,14 @@ function configureSession(target, isPrivate = false) {
       download.state = state;
       download.path = item.getSavePath();
       download.received = item.getReceivedBytes();
+      delete download.item;
+      download.paused = false;
+      download.canResume = false;
+      // Keep finished, non-private records across restarts; interrupted ones lose resume support.
+      if (!download.private && FINISHED_DOWNLOAD_STATES.includes(state)) {
+        store.data.downloads = [{ id: download.id, filename: download.filename, url: download.url, path: download.path, received: download.received, total: download.total, state, createdAt: download.createdAt }, ...store.data.downloads.filter(d => d.id !== download.id)].slice(0, 200);
+        store.save();
+      }
       publish();
     });
     publish();
@@ -1230,6 +1238,8 @@ else {
   app.on('second-instance', (_event, argv) => { if (win) { if (win.isMinimized()) win.restore(); win.focus(); if (argv.includes('--calendar')) openInternal('calendar'); if (argv.includes('--themes')) openInternal('themes'); } });
   app.whenReady().then(() => {
     store = new BrowserStore(app.getPath('userData'));
+    // Restore the persisted download history (finished, non-private) into the session list.
+    downloads = store.data.downloads.map(record => ({ ...record, paused: false, canResume: false }));
     Menu.setApplicationMenu(null);
     browserSession = session.fromPartition('persist:cherry-web');
     privateSession = session.fromPartition(`cherry-private-${randomUUID()}`);
