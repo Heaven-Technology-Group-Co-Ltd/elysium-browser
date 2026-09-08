@@ -23,4 +23,19 @@ contextBridge.exposeInMainWorld('elysium', {
     ipcRenderer.on('elysium:palette', listener);
     return () => ipcRenderer.removeListener('elysium:palette', listener);
   },
+  onFindOpen: callback => {
+    const listener = () => callback();
+    ipcRenderer.on('elysium:find-open', listener);
+    return () => ipcRenderer.removeListener('elysium:find-open', listener);
+  },
+  onFoundInPage: callback => {
+    const listener = (_event, result) => callback(result);
+    ipcRenderer.on('elysium:found-in-page', listener);
+    return () => ipcRenderer.removeListener('elysium:found-in-page', listener);
+  },
+  onToast: callback => {
+    const listener = (_event, message) => callback(message);
+    ipcRenderer.on('elysium:toast', listener);
+    return () => ipcRenderer.removeListener('elysium:toast', listener);
+  },
 });

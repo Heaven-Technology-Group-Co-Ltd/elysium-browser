@@ -1,6 +1,8 @@
 const {test,expect,_electron:electron}=require('@playwright/test');
 const fs=require('node:fs');const path=require('node:path');const os=require('node:os');const http=require('node:http');
-let server,base,instance,page,profile;let requests=[];let oauthRequests=[];let observedUserAgents=[];let errors=[];
+// Keep the auto-Chrome grace period short in tests; no other fixture page uses a challenge title.
+process.env.ELYSIUM_AUTO_CHROME_MS = process.env.ELYSIUM_AUTO_CHROME_MS || '2000';
+let server,base,instance,page,profile;let requests=[];let oauthRequests=[];let observedUserAgents=[];let privacyHeaders=[];let errors=[];
 const screenshots=path.resolve('docs/screenshots');
 async function launch(){
  const start=Date.now();
@@ -24,8 +26,9 @@ async function capture(name,width=1440,height=900){
 }
 
 test.beforeAll(async()=>{
- server=http.createServer(async(req,res)=>{
-  observedUserAgents.push({url:req.url,value:req.headers['user-agent']||''});
+  server=http.createServer(async(req,res)=>{
+   observedUserAgents.push({url:req.url,value:req.headers['user-agent']||''});
+   privacyHeaders.push({url:req.url,dnt:req.headers.dnt||'',gpc:req.headers['sec-gpc']||'',ua:req.headers['user-agent']||'',chua:req.headers['sec-ch-ua']||'',platform:req.headers['sec-ch-ua-platform']||''});
   if(req.url==='/tone.wav'){
    // Non-silent PCM: silence never fires Chromium's audible-state transition.
    const rate=11025;const wav=Buffer.alloc(44+rate*2);wav.write('RIFF');wav.writeUInt32LE(wav.length-8,4);wav.write('WAVEfmt ',8);wav.writeUInt32LE(16,16);wav.writeUInt16LE(1,20);wav.writeUInt16LE(1,22);wav.writeUInt32LE(rate,24);wav.writeUInt32LE(rate*2,28);wav.writeUInt16LE(2,32);wav.writeUInt16LE(16,34);wav.write('data',36);wav.writeUInt32LE(rate*2,40);
@@ -34,7 +37,8 @@ test.beforeAll(async()=>{
   }
   if(req.url==='/favicon.png'){res.setHeader('Content-Type','image/png');res.end(fs.readFileSync(path.resolve('assets/elysium.png')));return;}
   if(req.url==='/redirect'){res.writeHead(302,{Location:'/second'});res.end();return;}
-  if(req.url==='/slow'){res.writeHead(200,{'Content-Type':'text/html'});res.write('<html><head><title>Slow fixture</title></head><body>Loading a real response');const timer=setTimeout(()=>res.end('</body></html>'),15000);res.on('close',()=>clearTimeout(timer));return;}
+   if(req.url==='/slow'){res.writeHead(200,{'Content-Type':'text/html'});res.write('<html><head><title>Slow fixture</title></head><body>Loading a real response');const timer=setTimeout(()=>res.end('</body></html>'),15000);res.on('close',()=>clearTimeout(timer));return;}
+   if(req.url==='/challenge'){res.writeHead(200,{'Content-Type':'text/html; charset=utf-8'});res.end('<!doctype html><html><head><title>Just a moment...</title></head><body>Performing security verification (test fixture that never resolves)</body></html>');return;}
   if(req.url==='/oauth/token'){let body='';for await(const chunk of req)body+=chunk;const form=Object.fromEntries(new URLSearchParams(body));oauthRequests.push({type:'token',form});res.setHeader('Content-Type','application/json');res.end(JSON.stringify({access_token:form.grant_type==='refresh_token'?'OAUTH_ACCESS_REFRESHED':'OAUTH_ACCESS_INITIAL',refresh_token:'OAUTH_REFRESH',token_type:'Bearer',expires_in:form.grant_type==='refresh_token'?3600:1,scope:'openid profile'}));return;}
   if(['/models','/api/tags'].includes(req.url)){if(req.headers.authorization?.startsWith('Bearer OAUTH_'))oauthRequests.push({type:'models',authorization:req.headers.authorization});res.setHeader('Content-Type','application/json');res.end(JSON.stringify(req.url==='/models'?{data:[{id:'test-model'}]}:{models:[{name:'test-model'}]}));return;}
   if(['/chat/completions','/api/chat'].includes(req.url)){let body='';for await(const chunk of req)body+=chunk;requests.push(JSON.parse(body));res.setHeader('Content-Type','application/json');const content='TEST FIXTURE RESPONSE <img src=x onerror="window.pwned=1">';res.end(JSON.stringify(req.url==='/api/chat'?{message:{content}}:{choices:[{message:{content}}]}));return;}
@@ -313,5 +317,70 @@ test('native screenshots and layout at required dimensions',async()=>{
   await call('split-open',{url:`${base}/second`});await expect.poll(async()=>(await views()).filter(v=>v.visible).length).toBe(2);await capture(`split-${width}`,width,height);await call('split-close');
   await call('internal','themes');await capture(`themes-${width}`,width,height);
  }
- const environment=await instance.evaluate(({screen,app})=>({electron:process.versions.electron,chromium:process.versions.chrome,version:app.getVersion(),displays:screen.getAllDisplays().map(d=>({size:d.size,scaleFactor:d.scaleFactor}))}));fs.writeFileSync(path.join(screenshots,'capture-metadata.json'),JSON.stringify({environment,captures,method:'Electron desktopCapturer: actual native window composition, including WebContentsViews'},null,2));
+  const environment=await instance.evaluate(({screen,app})=>({electron:process.versions.electron,chromium:process.versions.chrome,version:app.getVersion(),displays:screen.getAllDisplays().map(d=>({size:d.size,scaleFactor:d.scaleFactor}))}));fs.writeFileSync(path.join(screenshots,'capture-metadata.json'),JSON.stringify({environment,captures,method:'Electron desktopCapturer: actual native window composition, including WebContentsViews'},null,2));
+});
+
+test('popular basics: find in page, per-site zoom memory, privacy signals and download speed',async()=>{
+ test.setTimeout(120000);
+ await navigate(`${base}/`);
+ // Ctrl+F opens the shell find bar on website tabs.
+ await nativeKey('F',`${base}/`);
+ await expect(page.locator('#find-bar')).toBeVisible();
+ await page.locator('#find-input').fill('space for better');
+ await expect(page.locator('#find-count')).toHaveText('1/1',{timeout:10000});
+ await page.locator('#find-input').press('Enter');
+ await expect(page.locator('#find-count')).toHaveText('1/1');
+ await page.locator('#find-input').press('Escape');
+ await expect(page.locator('#find-bar')).toBeHidden();
+ // Per-site zoom persists across reload like popular browsers.
+ await call('zoom-set',1);expect((await state()).zoomLevel).toBe(1);
+ await expect(page.locator('#zoom-badge')).toHaveText('120%');
+ await call('reload');await waitURL(`${base}/`);expect((await state()).zoomLevel).toBe(1);
+ await call('zoom-reset');expect((await state()).zoomLevel).toBe(0);
+ await expect(page.locator('#zoom-badge')).toBeHidden();
+ // DNT + GPC ride on real requests until disabled in settings.
+ const lastHeaders=url=>privacyHeaders.filter(h=>h.url===url).at(-1);
+ await call('navigate',`${base}/second`);await waitURL(`${base}/second`);
+ expect(lastHeaders('/second')).toMatchObject({dnt:'1',gpc:'1'});
+ await call('settings',{privacy:{dnt:false,gpc:false}});
+ await call('reload');await waitURL(`${base}/second`);
+ expect(lastHeaders('/second')).toMatchObject({dnt:'',gpc:''});
+ await call('settings',{privacy:{dnt:true,gpc:true}});
+ // Live downloads report speed and ETA while progressing.
+ const savePath=path.join(profile,'elysium-speed.bin');
+ await instance.evaluate(({session,webContents},{url,savePath})=>{session.fromPartition('persist:cherry-web').once('will-download',(_e,item)=>item.setSavePath(savePath));webContents.getAllWebContents().find(w=>w.getURL()===url).downloadURL(new URL('/download?slow',url).href);},{url:`${base}/second`,savePath});
+ await expect.poll(async()=>{const d=(await state()).downloads[0];return d&&d.speed>0&&d.etaSec!=null;},{timeout:20000}).toBe(true);
+ const live=(await state()).downloads[0];expect(live.received).toBeGreaterThan(0);
+ await call('cancel-download',live.id);
+});
+
+test('compat fingerprint stays Chrome-consistent with per-site Chrome mode',async()=>{
+ test.setTimeout(120000);
+ const chromeVersion=(await state()).runtime;const chromeMajor=chromeVersion.split('.')[0];
+ const lastHeaders=url=>privacyHeaders.filter(h=>h.url===url).at(-1);
+ await navigate(`${base}/second`);await waitURL(`${base}/second`);
+ const normal=lastHeaders('/second');
+ expect(normal.ua).toMatch(new RegExp(`Chrome/${chromeMajor}.*elysium-browser/`));
+ expect(normal.chua).toBe(`"elysium-browser";v="1", "Chromium";v="${chromeMajor}", "Not/A)Brand";v="99"`);
+ expect(normal.platform).toBe('"Windows"');
+ // Sites that only allow Chrome see a stock Chrome identity at header level.
+ await call('compat-chrome',{host:'127.0.0.1',enabled:true});
+ await call('reload');await waitURL(`${base}/second`);
+ const spoofed=lastHeaders('/second');
+ expect(spoofed.ua).toBe(`Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/${chromeVersion} Safari/537.36`);
+ expect(spoofed.chua).toBe(`"Google Chrome";v="${chromeMajor}", "Chromium";v="${chromeMajor}", "Not/A)Brand";v="99"`);
+ // ...and page scripts see the same stock identity (dom-ready shim).
+ const jsIdentity=await guestEval(`JSON.stringify({ ua: navigator.userAgent, brands: navigator.userAgentData.brands })`,`${base}/second`);
+ expect(JSON.parse(jsIdentity).ua).toBe(spoofed.ua);
+ expect(JSON.parse(jsIdentity).brands[0]).toEqual({ brand: 'Google Chrome', version: chromeMajor });
+ await call('compat-chrome',{host:'127.0.0.1',enabled:false});
+ await call('reload');await waitURL(`${base}/second`);
+ expect(lastHeaders('/second').ua).toMatch(/elysium-browser\//);
+ expect((await state()).settings.chromeHosts).toEqual([]);
+});
+
+test('chrome mode enables itself on stuck verification pages',async()=>{
+ await navigate(`${base}/challenge`);
+ await expect(page.locator('#toast')).toContainText('เปิดโหมด Chrome ให้ 127.0.0.1 อัตโนมัติ',{timeout:15000});
+ expect((await state()).settings.chromeHosts).toEqual(['127.0.0.1']);
 });

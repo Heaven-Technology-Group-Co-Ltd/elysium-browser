@@ -1,10 +1,10 @@
-# elysium-browser 1.4.0
+# elysium-browser 1.5.0
 
 แอปเว็บเบราว์เซอร์ Windows ธีมอนิเมะ elysium-browser ใช้ Electron 44.2.0 / Chromium / WebContentsView จากโปรเจกต์เดิม หน้าต้อนรับเป็น DOM จริง แยกจากเว็บไซต์ภายนอก
 
 ## เปิดแอป
 
-ดับเบิลคลิก `release/elysium-browser-1.4.0-portable.exe` หรือ `Start-Elysium.cmd` ซึ่งเปิดรุ่นล่าสุดพร้อมตัวตนเว็บไซต์ `elysium-browser/<version>` โดยไม่เปิดเผย `Electron/<version>` และยังคง token Chromium สำหรับความเข้ากันได้ ไอคอนอนิเมะ elysium-browser และเลขเวอร์ชันอยู่ใต้โลโก้ ช่องวันใน Calendar กดเลือกได้เต็มพื้นที่ Full screen จาก YouTube และเว็บไซต์จะขยาย WebContents เต็มทั้งหน้าจอจนผู้ใช้สั่งออก ลากหน้าต่างได้เต็มหัวแถบข้าง และไอคอนลำโพงแสดงเฉพาะแท็บที่มีเสียงหรือถูกปิดเสียงไว้ เข้า **การตั้งค่า → Theme Studio** หรือ `elysium://themes` เพื่อเลือกธีม สำหรับพัฒนา:
+ดับเบิลคลิก `release/elysium-browser-1.5.0-portable.exe` หรือ `Start-Elysium.cmd` ซึ่งเปิดรุ่นล่าสุดพร้อมตัวตนเว็บไซต์ `elysium-browser/<version>` โดยไม่เปิดเผย `Electron/<version>` และยังคง token Chromium สำหรับความเข้ากันได้ ไอคอนอนิเมะ elysium-browser และเลขเวอร์ชันอยู่ใต้โลโก้ ช่องวันใน Calendar กดเลือกได้เต็มพื้นที่ Full screen จาก YouTube และเว็บไซต์จะขยาย WebContents เต็มทั้งหน้าจอจนผู้ใช้สั่งออก ลากหน้าต่างได้เต็มหัวแถบข้าง และไอคอนลำโพงแสดงเฉพาะแท็บที่มีเสียงหรือถูกปิดเสียงไว้ เข้า **การตั้งค่า → Theme Studio** หรือ `elysium://themes` เพื่อเลือกธีม สำหรับพัฒนา:
 
 ```powershell
 npm ci
@@ -16,8 +16,9 @@ npm start
 - Calendar ภายในแอป: เมนู **Calendar · ปฏิทิน** หรือ `elysium://calendar` มีตารางเดือนและรายการรายเดือน ค้นหาชื่อ/สถานที่/รายละเอียด ไปยังเดือนที่เลือก และปุ่มวันนี้ เพิ่ม/แก้ไข/ลบนัดหมาย กำหนดเวลาเริ่ม–สิ้นสุด นัดหมายทั้งวันหรือข้ามวัน และ 5 หมวดสี เก็บข้อมูลในเครื่องโดยไม่ต้องมีบัญชีหรืออินเทอร์เน็ต
 - Calendar แจ้งผ่าน Windows ขณะเปิด elysium-browser ตามเวลาเครื่อง เลือกไม่เตือน/เมื่อถึงเวลา/ก่อน 5, 15, 30, 60 นาทีหรือ 1 วัน นัดหมายทั้งวันนับเวลาเตือนจาก 09:00 ของวันเริ่มต้น เมื่อเปิดใหม่จะเตือนรายการที่ถึงเวลาและยังไม่สิ้นสุด ไม่เตือนซ้ำรายการเดิม ข้อมูลเดิมสำรองเป็น `elysium-data.json.before-schema-5` ก่อนย้ายเป็น schema 5
 - Tabs, URL/search ไทย/อังกฤษ, back/forward/reload/stop, favicon/title, drag reorder, pin/mute/reopen, private tabs และ session restore
-- เว็บไซต์ได้รับ User-Agent `elysium-browser/<version>` โดยไม่มี `Electron/<version>` และยังมี Chrome compatibility token เว็บตรวจเบราว์เซอร์ที่ยังไม่รู้จัก elysium-browser อาจจัดกลุ่มเป็น Chrome แต่ดูชื่อ elysium-browser ได้ในรายละเอียด User-Agent
-- Bookmarks พร้อมโฟลเดอร์, history พร้อมค้นหา/ล้างตามช่วงเวลา, downloads พร้อมปลายทาง/progress/pause/resume/cancel จริง (resume ขึ้นกับ runtime/เซิร์ฟเวอร์) รายการที่เสร็จในโหมดปกติจะอยู่ในเครื่องข้ามการเปิดแอป (schema 5) และถูกลบออกจากรายการเมื่อไฟล์ในเครื่องหายไป (ลบ/ย้าย/เปลี่ยนชื่อข้างนอก) ส่วน Private ไม่ถูกเก็บ
+- เว็บไซต์ได้รับ User-Agent `elysium-browser/<version>` โดยไม่มี `Electron/<version>` และยังมี Chrome compatibility token พร้อม Client Hints (`Sec-CH-UA`/`Mobile`/`Platform`) ที่สอดคล้องกับตัวตนทุกคำขอ แบบเบราว์เซอร์ Chromium เจ้าอื่น เว็บตรวจเบราว์เซอร์ที่ยังไม่รู้จัก elysium-browser อาจจัดกลุ่มเป็น Chrome แต่ดูชื่อ elysium-browser ได้ในรายละเอียด User-Agent
+- เว็บไหนตรวจเข้ม (allowlist ที่มีแค่ Chrome/Edge, Cloudflare challenge ค้าง) แอปจะเปิด "โหมด Chrome รายเว็บ" ให้อัตโนมัติเมื่อหน้า verification ค้าง หรือกดปุ่มข้อมูลข้างช่องที่อยู่เพื่อเปิดเอง แท็บนั้นจะเห็นเราเป็น Google Chrome ทั้งระดับเครือข่าย (User-Agent + hints รวมคำขอเบื้องหลัง) และสคริปต์หน้าเว็บ (รวม iframe ตรวจสอบบอท) ดูและลบรายชื่อได้ในการตั้งค่า
+- Bookmarks พร้อมโฟลเดอร์, history พร้อมค้นหา/ล้างตามช่วงเวลา, นำเข้าบุ๊กมาร์กจากไฟล์ HTML ของ Chrome/Edge (เมนูบุ๊กมาร์ก → นำเข้าจาก Chrome/Edge ของซ้ำถูกข้าม), downloads พร้อมปลายทาง/progress/pause/resume/cancel จริง (resume ขึ้นกับ runtime/เซิร์ฟเวอร์) พร้อมความเร็วและเวลาที่เหลือขณะดาวน์โหลด รายการที่เสร็จในโหมดปกติจะอยู่ในเครื่องข้ามการเปิดแอป (schema 5) และถูกลบออกจากรายการเมื่อไฟล์ในเครื่องหายไป (ลบ/ย้าย/เปลี่ยนชื่อข้างนอก) ส่วน Private ไม่ถูกเก็บ
 - Workspaces แยกกลุ่มแท็บ โดย cookies/session ปกติยังใช้ร่วมกัน
 - Split View สองเว็บจริง คลิกเว็บหรือหัว L/R เพื่อเลือกด้าน active ปรับสัดส่วนได้ แผงด้านข้างลดพื้นที่เว็บจริง
 - Command palette ค้นหาคำสั่ง/แท็บ/บุ๊กมาร์กด้วย Ctrl+K
@@ -28,6 +29,8 @@ npm start
 - ปรับรูปโปรไฟล์/เพื่อน ความเข้มภาพ/แสง ปิดภาพ ลดการเคลื่อนไหว ย่อ sidebar และเลือกภาพพื้นหลังแยกจากสีธีมหรือนำเข้าภาพจากเครื่องได้
 - หน้า Home/New Tab ใช้ layout classic แบบรุ่น 1.3 พร้อม search, shortcuts, recent tabs/history, AI actions, workspaces และ Your Today จริง; ไม่มี artwork ไปเปลี่ยนหน้าตาเว็บปลายทาง
 - Memory Saver ปิด WebContents จริง แล้วโหลด URL ใหม่เมื่อกลับมา อัตโนมัติต้องเปิดส่วนกลางและอนุญาตรายแท็บ มี hostname exceptions; ป้องกัน active/split/audio/capture/download/iframe และงานค้างที่ตรวจพบ
+- Find in page ด้วย Ctrl+F พร้อมนับผลและ Enter/Shift+Enter เลื่อนผล (ใช้บนหน้าเว็บไซต์), ซูมรายเว็บ (Ctrl++/Ctrl+-/Ctrl+0) จำค่าแยกตามเว็บและแสดง % ที่ toolbar กดเพื่อรีเซ็ต
+- ความเป็นส่วนตัว: ส่งสัญญาณ Do Not Track และ Global Privacy Control กับทุกคำขอ (ปิดได้ในตั้งค่า), เลือกล้างประวัติ/คุกกี้/แคชอัตโนมัติเมื่อปิดแอป, เชื่อมลิงก์ `elysium://` กับแอป และปุ่มเปิด Default apps ของ Windows เพื่อตั้งเบราว์เซอร์หลัก (Windows ให้ผู้ใช้เลือกเอง)
 - Clock/todo เป็นข้อมูลจริง AI/Translate/Weather ต้องตั้งค่า provider ก่อน
 
 ## ตั้งค่า provider
@@ -67,6 +70,7 @@ Weather เลือก Open-Meteo และระบุเมืองใน Se
 | Ctrl+R / F5 / Ctrl+Shift+R | โหลดใหม่ / โหลดใหม่โดยไม่ใช้แคช |
 | Escape | หยุดโหลดหรือปิด dialog/palette |
 | Ctrl+D / Ctrl+H / Ctrl+J | บุ๊กมาร์ก / ประวัติ / ดาวน์โหลด |
+| Ctrl+F / Enter / Shift+Enter / Escape | ค้นหาในหน้า / ผลถัดไป / ผลก่อนหน้า / ปิดค้นหา |
 | Ctrl++ / Ctrl+- / Ctrl+0 / F11 | ซูมเข้า / ออก / คืนค่า / เต็มหน้าจอ |
 
 ## ตรวจและ build
@@ -105,7 +109,7 @@ Source ก่อนแก้อยู่ที่ `backups/before-anime-20260906
 
 Restore คืน URL/workspace/pin/ตัวเลือกพักแท็บ ไม่คืน DOM/form/navigation stack ทั้งหมด Notes ต้องกดบันทึก Reminders จะแจ้งเมื่อแอปกำลังทำงานอยู่ (หากปิดเครื่อง/ปิดแอป ระบบจะแจ้งหลังเปิด elysium-browser ครั้งถัดไป) Memory Saver โหลดหน้าใหม่และรับประกันการกู้ฟอร์มทุกเว็บไม่ได้ รายการดาวน์โหลดที่เสร็จแล้วจะอยู่ข้ามการเปิดแอป (เฉพาะโหมดปกติ ไม่รวม Private) แต่ดาวน์โหลดค้าง/pause ไม่ได้กู้ต่อหลังปิดแอป ไฟล์ที่ดาวน์โหลดยังคงอยู่ Private ไม่เข้า normal history/restore แต่ไฟล์/บุ๊กมาร์กที่สั่งเก็บยังอยู่ และไม่ซ่อนการเชื่อมต่อจากเว็บหรือเครือข่าย
 
-Reader เลือกบล็อกเนื้อหาหลักอัตโนมัติแต่ยังอ่านหลายคอลัมน์/iframe ได้ไม่ครบ ยังไม่มี ad/tracker blocking rule engine, Chrome extension manager, password manager, account sync ไม่รับรอง OAuth/DRM/ทุกเว็บไซต์ EXE ยังไม่ได้ลงลายเซ็นดิจิทัล
+Reader เลือกบล็อกเนื้อหาหลักอัตโนมัติแต่ยังอ่านหลายคอลัมน์/iframe ได้ไม่ครบ ยังไม่มี ad/tracker blocking rule engine, Chrome extension manager, password manager, account sync ไม่รับรอง OAuth/ทุกเว็บไซต์ สตรีมมิงที่บังคับ Widevine DRM (เช่น Netflix/Disney+/Spotify) เล่นไม่ได้เพราะ Electron ไม่มี CDM ตามลิขสิทธิ์ และเว็บเก่าที่ต้องใช้ IE mode/ActiveX เปิดไม่ได้เหมือนเบราว์เซอร์ Chromium ทั่วไป EXE ยังไม่ได้ลงลายเซ็นดิจิทัล
 
 ดูผลตรวจรายข้อใน [TEST_REPORT.md](TEST_REPORT.md) และ asset mapping ใน [docs/ARTWORK.md](docs/ARTWORK.md)
 

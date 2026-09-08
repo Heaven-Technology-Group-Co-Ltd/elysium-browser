@@ -1,5 +1,5 @@
 {
-  "version": "1.4.0",
+  "version": "1.5.0",
   "runtime": "44.2.0",
   "method": "Packaged or source Electron with real non-silent HTMLAudioElement inside WebContentsView; isolated test profile",
   "packaged": false,

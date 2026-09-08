@@ -1,6 +1,6 @@
 {
   "name": "elysium-browser",
-  "version": "1.4.0",
+  "version": "1.5.0",
   "description": "elysium-browser — a little space for your curiosity. A Windows desktop web browser.",
   "main": "src/main.js",
   "author": "Heaven Technology Group Co., Ltd. and Heaven Technologies",

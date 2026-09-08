@@ -4,7 +4,7 @@ const http = require('node:http');
 const path = require('node:path');
 const { pathToFileURL } = require('node:url');
 const { randomUUID } = require('node:crypto');
-const { BrowserStore, resolveAddress, isWebURL, INTERNAL_PAGES, SEARCH_ENGINES, POST_IT_COLORS, SCHEMA_VERSION, FINISHED_DOWNLOAD_STATES, filterExistingDownloads, sanitizeTheme, computeLayout } = require('./core');
+const { BrowserStore, resolveAddress, isWebURL, hostnameOf, rememberZoom, sanitizePrivacy, sanitizeChromeHosts, stockChromeUA, hintBrands, buildCompatShim, isChromeModeRequest, shouldAutoChromeMode, parseBookmarksHTML, INTERNAL_PAGES, SEARCH_ENGINES, POST_IT_COLORS, SCHEMA_VERSION, FINISHED_DOWNLOAD_STATES, filterExistingDownloads, sanitizeTheme, computeLayout } = require('./core');
 const { checkProvider, requestAI, getWeather, providerURL } = require('./providers');
 const { createOAuthAttempt, exchangeAuthorizationCode, oauthFingerprint, refreshAccessToken, safeStateEqual, validateOAuthConfig } = require('./oauth');
 const { EXTRACT_PAGE, CAN_SUSPEND } = require('./page-extraction');
@@ -14,6 +14,8 @@ const updater = require('./updater');
 
 if (process.env.ELYSIUM_TEST_PROFILE) app.setPath('userData', process.env.ELYSIUM_TEST_PROFILE);
 app.setName('elysium-browser');
+// Accept-Language and formatting follow the OS locale like stock Chrome does.
+try { app.commandLine.appendSwitch('lang', app.getLocale()); } catch { /* Keep the Electron default locale. */ }
 if (process.platform === 'win32') app.setAppUserModelId('com.elysium.browser');
 const UI_FILE = path.join(__dirname, 'index.html');
 const UI_URL = pathToFileURL(UI_FILE).href;
@@ -63,6 +65,12 @@ let closing = false;
 const grantedPermissions = new Set();
 const ui = { panel: null, overlay: false, split: null, ratio: 0.5 };
 const closedTabs = [];
+let lastFind = '';
+// Auto Chrome mode: hosts already tried this session + pending timers, so one
+// stuck verification page enables the mode once instead of looping reloads.
+const autoChromeTried = new Set();
+const autoChromePending = new Set();
+const AUTO_CHROME_DELAY_MS = Number(process.env.ELYSIUM_AUTO_CHROME_MS) || 9000;
 let reader = null;
 let aiPreview = null;
 let aiResult = '';
@@ -95,6 +103,8 @@ function pruneMissingDownloads() {
 function snapshot() {
   if (store && Date.now() - lastDownloadPrune > 30000) { lastDownloadPrune = Date.now(); pruneMissingDownloads(); }
   const oauth = oauthSummary();
+  const activeContents = activeTab()?.view?.webContents;
+  const zoomLevel = activeContents && !activeContents.isDestroyed() ? activeContents.getZoomLevel() : 0;
   return {
     tabs: tabs.map(({ view, navigation, ...tab }) => ({
       ...tab,
@@ -112,7 +122,8 @@ function snapshot() {
     permissions: store.data.permissions, hasAIKey: !!store.data.secrets.aiKey, aiOAuth: oauth,
     ui: { ...ui, htmlFullscreen: !!htmlFullscreenTabId, bounds: lastLayout }, reader, aiPreview, aiResult, aiBusy, weather, providerStatus,
     customBackground: store.data.customBackground ? pathToFileURL(path.join(app.getPath('userData'), 'themes', store.data.customBackground)).href : '',
-    downloads: downloads.map(({ item, ...download }) => download),
+    downloads: downloads.map(({ item, lastSample, ...download }) => download),
+    zoomLevel,
     browserName: ELYSIUM_BROWSER_NAME, version: app.getVersion(), runtime: process.versions.chrome,
     update: updater.status,
     storageError: store.writeError,
@@ -246,6 +257,45 @@ function focusAddress() {
   win.webContents.send('elysium:focus-address');
 }
 
+function notifyToast(message) {
+  if (win && !win.isDestroyed() && typeof message === 'string' && message) win.webContents.send('elysium:toast', message);
+}
+
+// When a bot-verification interstitial is still showing after a grace period,
+// enable Chrome mode for that host automatically and reload once — the manual
+// equivalent users otherwise discover only after reporting "this site won't open".
+function maybeAutoChrome(tab) {
+  if (!tab || closing || !store) return;
+  const host = shouldAutoChromeMode({ title: tab.title, url: tab.url, chromeHosts: store.data.settings.chromeHosts });
+  if (!host || autoChromeTried.has(host) || autoChromePending.has(host)) return;
+  autoChromePending.add(host);
+  const tabId = tab.id;
+  const seenUrl = tab.url;
+  setTimeout(() => {
+    autoChromePending.delete(host);
+    const current = tabs.find(t => t.id === tabId);
+    if (!current || closing || !win || win.isDestroyed()) return;
+    if (current.url !== seenUrl) return;
+    const again = shouldAutoChromeMode({ title: current.title, url: current.url, chromeHosts: store.data.settings.chromeHosts });
+    if (!again || autoChromeTried.has(again)) return;
+    autoChromeTried.add(again);
+    store.data.settings.chromeHosts = sanitizeChromeHosts([...store.data.settings.chromeHosts, again]);
+    store.save();
+    publish();
+    notifyToast(`เปิดโหมด Chrome ให้ ${again} อัตโนมัติแล้ว กำลังโหลดใหม่`);
+    if (current.view && !current.view.webContents.isDestroyed()) current.view.webContents.reload();
+  }, AUTO_CHROME_DELAY_MS);
+}
+
+// Active website tab for find-in-page and zoom commands. Internal elysium://
+// pages render inside the shell, so page search targets guest views only.
+function findTarget() {
+  const tab = activeTab();
+  const contents = tab?.view?.webContents;
+  if (!tab || !contents || contents.isDestroyed() || !isWebURL(tab.url)) throw new Error('ใช้ได้บนหน้าเว็บไซต์เท่านั้น');
+  return contents;
+}
+
 function attachShortcuts(contents) {
   contents.on('before-input-event', (event, input) => {
     if (input.type !== 'keyDown') return;
@@ -269,11 +319,19 @@ function attachShortcuts(contents) {
     else if (input.alt && key === 'arrowleft') go('back');
     else if (input.alt && key === 'arrowright') go('forward');
     else if (ctrl && key === 'd') bookmark();
+    else if (ctrl && key === 'f') { win.webContents.send('elysium:find-open'); }
     else if (ctrl && key === 'h') openInternal('history');
     else if (ctrl && key === 'j') openInternal('downloads');
     else if (ctrl && ['+', '=', '-', '0'].includes(key)) {
       const contents = activeTab()?.view?.webContents;
-      if (contents) contents.setZoomLevel(key === '0' ? 0 : Math.max(-5, Math.min(5, contents.getZoomLevel() + (key === '-' ? -0.5 : 0.5))));
+      if (contents && !contents.isDestroyed()) {
+        const level = key === '0' ? 0 : Math.max(-5, Math.min(5, contents.getZoomLevel() + (key === '-' ? -0.5 : 0.5)));
+        contents.setZoomLevel(level);
+        // Remember per-site zoom like popular browsers; 100% removes the override.
+        store.data.zoomLevels = rememberZoom(store.data.zoomLevels, hostnameOf(activeTab().url), level);
+        store.save();
+        publish();
+      }
     } else if (key === 'f' && !ctrl && !input.alt && htmlFullscreenTabId && activeTab()?.view?.webContents === contents) exitHtmlFullscreen();
     else if (key === 'f11' && htmlFullscreenTabId) exitHtmlFullscreen();
     else if (key === 'f11') win.setFullScreen(!win.isFullScreen());
@@ -357,6 +415,30 @@ function createView(tab) {
   });
   wc.on('did-start-loading', () => { tab.loading = true; publish(); });
   wc.on('did-stop-loading', () => { tab.loading = false; publish(); });
+  // Per-site Chrome mode, JS half: page scripts read navigator.* directly, so
+  // opted-in hosts get a stock Chrome identity here too (headers alone did not
+  // release Cloudflare challenges). Runs at dom-ready, before async bot scripts
+  // typically sample the fingerprint, and never touches non-opted hosts.
+  // Subframes (Turnstile/challenge iframes sample too) get the same treatment.
+  const applyCompatShim = frame => {
+    if (!isWebURL(tab.url)) return;
+    const host = hostnameOf(tab.url);
+    if (!host || !store.data.settings.chromeHosts.includes(host)) return;
+    frame.executeJavaScript(buildCompatShim({ userAgent: stockChromeUA(process.versions.chrome), chromeVersion: process.versions.chrome })).catch(() => {});
+  };
+  wc.on('dom-ready', () => {
+    if (tab.view?.webContents !== wc || wc.isDestroyed()) return;
+    applyCompatShim(wc.mainFrame);
+  });
+  wc.on('frame-created', (_event, { frame }) => {
+    frame.once('dom-ready', () => {
+      if (tab.view?.webContents !== wc || wc.isDestroyed() || frame.isDestroyed()) return;
+      applyCompatShim(frame);
+    });
+  });
+  wc.on('found-in-page', (_event, result) => {
+    if (tab.id === activeId && win && !win.isDestroyed()) win.webContents.send('elysium:found-in-page', { matches: result.matches, activeMatchOrdinal: result.activeMatchOrdinal, finalUpdate: result.finalUpdate });
+  });
   wc.on('did-start-navigation', (_event, url, _inPlace, mainFrame) => {
     if (mainFrame && isWebURL(url)) { tab.url = url; tab.error = null; layout(); publish(); }
   });
@@ -374,15 +456,20 @@ function createView(tab) {
     const latest = store.data.history[0];
     if (!tab.private && latest?.url === tab.url) { latest.title = tab.title; store.save(); }
     publish();
+    maybeAutoChrome(tab);
   });
   wc.on('did-finish-load', () => {
     // Chromium also emits this event after rendering its network error document.
     if (tab.error) { tab.loading = false; publish(); return; }
     tab.title = wc.getTitle().slice(0, 300) || tab.url;
     tab.error = null;
+    // Re-apply the remembered per-site zoom for full navigations.
+    const savedZoom = (store.data.zoomLevels[hostnameOf(tab.url)] ?? 0);
+    if (savedZoom && wc.getZoomLevel() !== savedZoom) wc.setZoomLevel(savedZoom);
     if (!tab.private) store.visit(tab.url, tab.title);
     layout();
     publish();
+    maybeAutoChrome(tab);
   });
   wc.on('did-fail-load', (_event, code, description, url, mainFrame) => {
     if (!mainFrame || code === -3) return;
@@ -785,7 +872,10 @@ const COMMAND_TYPES = {
   'postit-save': 'object', 'postit-delete': 'string', 'reminder-save': 'object', 'reminder-delete': 'string', 'reminder-done': 'object', 'reminder-snooze': 'object', 'reminder-check': 'none',
   'theme-save': 'object', 'background-import': 'none', 'bookmark-edit': 'object', 'shortcut-save': 'object', 'shortcut-remove': 'string', 'todo-save': 'object', 'todo-delete': 'string',
   'suspend-tab': 'object', 'tab-auto-suspend': 'object', 'ai-settings': 'object', 'ai-check': 'none', 'ai-oauth-start': 'none', 'ai-oauth-logout': 'none', 'ai-preview': 'string', 'ai-send': 'object', 'weather-config': 'object', 'weather-refresh': 'none',
-  'permission-set': 'object', 'clear-origin-data': 'string', 'pause-download': 'string', 'resume-download': 'string',
+  'permission-set': 'object', 'clear-origin-data': 'string', 'pause-download': 'string',
+  'resume-download': 'string', 'find-start': 'string', 'find-next': 'optional-string', 'find-prev': 'optional-string', 'find-stop': 'none',
+  'zoom-set': 'number', 'zoom-reset': 'none', 'bookmark-import': 'none', 'compat-chrome': 'object',
+  'default-protocol': 'none', 'default-browser-check': 'none', 'default-browser-settings': 'none',
   'update-check': 'none', 'update-download': 'none', 'update-install': 'none', 'update-open-releases': 'none',
 };
 function validateCommand(action, payload) {
@@ -811,6 +901,59 @@ async function command(action, payload) {
     case 'forward': go('forward'); break;
     case 'reload': reload(); break;
     case 'stop': activeTab()?.view?.webContents.stop(); break;
+    case 'find-start': lastFind = payload.slice(0, 500); findTarget().findInPage(lastFind); break;
+    case 'find-next': { const text = (payload ?? lastFind).slice(0, 500); if (text) { lastFind = text; findTarget().findInPage(text, { findNext: true }); } break; }
+    case 'find-prev': { const text = (payload ?? lastFind).slice(0, 500); if (text) { lastFind = text; findTarget().findInPage(text, { findNext: false, forward: false }); } break; }
+    case 'find-stop': { const contents = activeTab()?.view?.webContents; if (contents && !contents.isDestroyed()) { try { contents.stopFindInPage('clearSelection'); } catch { /* Already stopped. */ } } break; }
+    case 'zoom-set': { const contents = findTarget(); const level = Math.max(-5, Math.min(5, payload)); contents.setZoomLevel(level); store.data.zoomLevels = rememberZoom(store.data.zoomLevels, hostnameOf(activeTab().url), level); store.save(); publish(); break; }
+    case 'zoom-reset': { const contents = activeTab()?.view?.webContents; if (contents && !contents.isDestroyed()) contents.setZoomLevel(0); store.data.zoomLevels = rememberZoom(store.data.zoomLevels, hostnameOf(activeTab()?.url || ''), 0); store.save(); publish(); break; }
+    case 'compat-chrome': {
+      const host = hostnameOf(`https://${String(payload?.host || '').trim().toLowerCase()}`);
+      if (!host) throw new Error('ชื่อเว็บไม่ถูกต้อง');
+      const hosts = store.data.settings.chromeHosts.filter(h => h !== host);
+      if (payload?.enabled) hosts.push(host);
+      store.data.settings.chromeHosts = sanitizeChromeHosts(hosts);
+      store.save();
+      publish();
+      return { ok: true, enabled: store.data.settings.chromeHosts.includes(host) };
+    }
+    case 'bookmark-import': {
+      const { canceled, filePaths } = await dialog.showOpenDialog(win, { title: 'นำเข้าบุ๊กมาร์ก — elysium-browser', filters: [{ name: 'Bookmarks HTML', extensions: ['html', 'htm'] }], properties: ['openFile'] });
+      if (canceled || !filePaths?.[0]) return { ok: true, imported: 0, skipped: 0 };
+      let parsed = [];
+      try { parsed = parseBookmarksHTML(fs.readFileSync(filePaths[0], 'utf8')); }
+      catch { throw new Error('อ่านไฟล์บุ๊กมาร์กไม่สำเร็จ'); }
+      const existing = new Set(store.data.bookmarks.map(item => item.url));
+      let imported = 0;
+      for (const entry of parsed) {
+        if (existing.has(entry.url)) continue;
+        existing.add(entry.url);
+        store.data.bookmarks.push({ id: randomUUID(), title: entry.title, url: entry.url, folder: entry.folder, createdAt: Date.now() });
+        imported++;
+      }
+      store.data.bookmarks = store.data.bookmarks.slice(0, 2000);
+      store.save();
+      publish();
+      return { ok: true, imported, skipped: parsed.length - imported };
+    }
+    case 'default-protocol': {
+      // Registering elysium:// lets other apps open links back in elysium-browser.
+      let protocol = null;
+      try { protocol = app.isPackaged ? app.setAsDefaultProtocolClient('elysium') || app.isDefaultProtocolClient('elysium') : app.isDefaultProtocolClient('elysium'); }
+      catch { try { protocol = app.isDefaultProtocolClient('elysium'); } catch { protocol = null; } }
+      publish();
+      return { ok: true, protocol };
+    }
+    case 'default-browser-check': {
+      let protocol = null;
+      try { protocol = app.isDefaultProtocolClient('elysium'); } catch { protocol = null; }
+      return { ok: true, protocol, packaged: app.isPackaged, platform: process.platform };
+    }
+    case 'default-browser-settings': {
+      // Windows reserves the default-browser choice for the user; deep-link there.
+      if (process.platform === 'win32') { await shell.openExternal('ms-settings:defaultapps'); break; }
+      throw new Error('ตั้งค่า Default browser ใน System Settings ของระบบ');
+    }
     case 'bookmark': bookmark(); break;
     case 'remove-bookmark': store.data.bookmarks = store.data.bookmarks.filter(item => item.id !== payload); store.save(); break;
     case 'remove-history': store.data.history = store.data.history.filter(item => item.id !== payload); store.save(); break;
@@ -826,6 +969,7 @@ async function command(action, payload) {
       if (Number.isFinite(payload.suspendMinutes)) store.data.settings.suspendMinutes = Math.max(5, Math.min(240, payload.suspendMinutes));
       if (Array.isArray(payload.memoryExceptions)) store.data.settings.memoryExceptions = payload.memoryExceptions.filter(x => typeof x === 'string').map(x => x.trim()).filter(Boolean).slice(0, 200);
       if (typeof payload.autoUpdate === 'boolean') store.data.settings.autoUpdate = payload.autoUpdate;
+      if (payload?.privacy && typeof payload.privacy === 'object') store.data.settings.privacy = sanitizePrivacy({ ...store.data.settings.privacy, ...payload.privacy });
       store.save();
       layout();
       break;
@@ -1132,6 +1276,37 @@ function configureSession(target, isPrivate = false) {
   // Keep Chromium compatibility tokens while identifying elysium-browser and avoiding
   // Electron-specific fingerprinting in both HTTP headers and navigator.userAgent.
   target.setUserAgent(elysiumUserAgent());
+  // Privacy signals, never content blocking: DNT and Sec-GPC simply declare the
+  // user's tracking preference to websites that honor them.
+  // Compatibility fingerprint: real Chromium browsers always send low-entropy
+  // Client Hints, and bot scoring flags requests whose UA claims Chrome while
+  // the hints are missing or inconsistent — so every web request carries
+  // Sec-CH-UA brands matching the User-Agent it goes out with.
+  target.webRequest.onBeforeSendHeaders((details, callback) => {
+    try {
+      const settings = store?.data?.settings;
+      const privacy = settings?.privacy;
+      const requestHeaders = { ...details.requestHeaders };
+      const host = hostnameOf(details.url);
+      if (host) {
+        const opted = settings?.chromeHosts || [];
+        // Chrome mode follows the tab: subresource/beacon/challenge requests on
+        // third-party hosts (Cloudflare challenge platform, Turnstile, beacons)
+        // carry the same identity as the opted-in page that caused them, so the
+        // whole challenge session stays consistent like stock Chrome.
+        const owner = details.webContentsId != null ? tabs.find(t => t.view?.webContents?.id === details.webContentsId) : null;
+        const chromeMode = isChromeModeRequest({ requestHost: host, ownerUrl: owner?.url || '', chromeHosts: opted });
+        requestHeaders['Sec-CH-UA'] = hintBrands({ chromeMode, chromeMajor: process.versions.chrome, appMajor: app.getVersion() });
+        requestHeaders['Sec-CH-UA-Mobile'] = '?0';
+        requestHeaders['Sec-CH-UA-Platform'] = '"Windows"';
+        // Per-site Chrome mode for server allowlists that only know Chrome/Edge.
+        if (chromeMode) requestHeaders['User-Agent'] = stockChromeUA(process.versions.chrome);
+      }
+      if (privacy?.dnt) requestHeaders.DNT = '1';
+      if (privacy?.gpc) requestHeaders['Sec-GPC'] = '1';
+      callback({ requestHeaders });
+    } catch { callback({}); }
+  });
   target.setPermissionCheckHandler((contents, permission, origin) => {
     if (!['media', 'notifications', 'geolocation', 'fullscreen'].includes(permission) || !isWebURL(origin) || !origin.startsWith('https://') || !contents || contents.isDestroyed() || !isWebURL(contents.getURL()) || new URL(contents.getURL()).origin !== new URL(origin).origin) return false;
     origin = new URL(origin).origin;
@@ -1166,7 +1341,7 @@ function configureSession(target, isPrivate = false) {
   });
   target.on('will-download', (_event, item, contents) => {
     item.setSaveDialogOptions({ title: 'บันทึกไฟล์ — elysium-browser', defaultPath: path.join(app.getPath('downloads'), path.basename(item.getFilename())) });
-    const download = { id: randomUUID(), sourceTabId: tabs.find(t => t.view?.webContents === contents)?.id, private: isPrivate, filename: item.getFilename(), url: item.getURL(), received: 0, total: item.getTotalBytes(), state: 'progressing', paused: false, canResume: false, createdAt: Date.now(), path: '', item };
+    const download = { id: randomUUID(), sourceTabId: tabs.find(t => t.view?.webContents === contents)?.id, private: isPrivate, filename: item.getFilename(), url: item.getURL(), received: 0, total: item.getTotalBytes(), state: 'progressing', paused: false, canResume: false, createdAt: Date.now(), path: '', speed: 0, etaSec: null, lastSample: { at: Date.now(), bytes: 0 }, item };
     downloads.unshift(download);
     item.on('updated', (_event, state) => {
       download.state = state;
@@ -1175,6 +1350,15 @@ function configureSession(target, isPrivate = false) {
       download.path = item.getSavePath();
       download.paused = item.isPaused();
       download.canResume = item.canResume();
+      // Speed as an exponential moving average over ~0.5s samples; ETA from it.
+      const now = Date.now();
+      const elapsed = (now - download.lastSample.at) / 1000;
+      if (elapsed >= 0.5 && !download.paused) {
+        const instant = Math.max(0, (download.received - download.lastSample.bytes) / elapsed);
+        download.speed = download.speed ? Math.round(download.speed * 0.6 + instant * 0.4) : Math.round(instant);
+        download.lastSample = { at: now, bytes: download.received };
+      }
+      download.etaSec = download.speed > 0 && download.total > download.received ? Math.ceil((download.total - download.received) / download.speed) : null;
       publish();
     });
     item.once('done', (_event, state) => {
@@ -1222,6 +1406,12 @@ function createWindow() {
     clearTimeout(htmlFullscreenLayoutTimer);
     publishTimer = null;
     htmlFullscreenLayoutTimer = null;
+    // Clear-on-exit privacy: history is wiped synchronously; cookies/cache are
+    // best-effort async and usually finish while windows tear down.
+    const privacy = store.data.settings.privacy;
+    if (privacy.clearHistory) store.data.history = [];
+    if (privacy.clearCookies) browserSession.clearStorageData({ storages: ['cookies'] }).catch(() => {});
+    if (privacy.clearCache) browserSession.clearCache().catch(() => {});
     saveTabs();
     for (const tab of tabs) if (tab.view && !tab.view.webContents.isDestroyed()) tab.view.webContents.close();
   });
@@ -1266,6 +1456,8 @@ else {
     downloads = store.data.downloads.map(record => ({ ...record, paused: false, canResume: false }));
     pruneMissingDownloads();
     Menu.setApplicationMenu(null);
+    // Claim elysium:// links for packaged builds so other apps can open back here.
+    if (app.isPackaged) { try { app.setAsDefaultProtocolClient('elysium'); } catch { /* Protocol claim is best-effort. */ } }
     browserSession = session.fromPartition('persist:cherry-web');
     privateSession = session.fromPartition(`cherry-private-${randomUUID()}`);
     configureSession(browserSession);

@@ -23,6 +23,7 @@ const site = item => `<span class="site-icon">${item.favicon?.startsWith('data:i
 const active = () => state?.tabs.find(t => t.id === state.activeId);
 let state, currentPage, shownTabId, pageKey='', panelKey='', tabsKey='', workspaceKey='', toastTimer, formSubmit;
 let filter='', folderFilter='', selectedNoteId=null, noteDirty=false, paletteIndex=0, openingDialog=false, organizerTab='notes';
+let findOpen=false, findTabId=null, findText='', findTimer=null;
 document.querySelectorAll('[data-icon]').forEach(el => { el.innerHTML=svg(el.dataset.icon); });
 
 function toast(message) { $('#toast').textContent=message; $('#toast').classList.add('visible'); clearTimeout(toastTimer); toastTimer=setTimeout(()=>$('#toast').classList.remove('visible'),4200); }
@@ -71,6 +72,10 @@ function render(next) {
   shownTabId=tab.id;$('#private-indicator').hidden=!tab.private;
   $('#bookmark-toggle').disabled=page!=='web';$('#bookmark-toggle').classList.toggle('bookmarked',state.bookmarks.some(b=>b.url===tab.url));
   $('#bookmark-toggle').setAttribute('aria-pressed',String(state.bookmarks.some(b=>b.url===tab.url)));
+  if(findOpen&&findTabId!==tab.id)closeFind(true);
+  const zoomBadge=$('#zoom-badge');
+  if(page==='web'&&state.zoomLevel){zoomBadge.hidden=false;zoomBadge.textContent=`${zoomPct(state.zoomLevel)}%`;}
+  else zoomBadge.hidden=true;
   $('#bookmark-count').textContent=state.bookmarks.length||'';$('#download-count').textContent=state.downloads.filter(d=>d.state==='progressing').length||'';
   document.querySelectorAll('[data-page]').forEach(b=>b.classList.toggle('active',b.dataset.page===page));
   document.querySelectorAll('.navigation [data-panel]').forEach(b=>b.classList.toggle('active',b.dataset.panel===state.ui.panel));
@@ -144,7 +149,7 @@ function renderHome(){
 function pageHeader(kicker,title,description){return `<div class="page-kicker">${kicker}</div><h1>${title}</h1><p class="page-description">${description}</p>`;}
 function renderLibrary(page){
  const bookmarks=page==='bookmarks';const folders=[...new Set(state.bookmarks.map(b=>b.folder||'').filter(Boolean))];
- $('#content').innerHTML=`<section class="page">${pageHeader(bookmarks?'YOUR COLLECTION':'RECENT EXPLORATIONS',bookmarks?'เก็บสิ่งที่คุณชอบ':'ย้อนรอยการค้นพบ',bookmarks?'เว็บไซต์โปรดของคุณ · Ctrl+D เพื่อบันทึกเว็บปัจจุบัน':'ประวัติจากเว็บไซต์ที่เปิดจริงในแท็บปกติ')}<div class="page-tools"><input id="library-filter" class="filter-input" placeholder="ค้นหาในรายการ…" aria-label="ค้นหาในรายการ" value="${esc(filter)}">${bookmarks?`<select id="folder-filter" aria-label="โฟลเดอร์บุ๊กมาร์ก"><option value="">ทุกโฟลเดอร์</option>${folders.map(f=>`<option ${folderFilter===f?'selected':''}>${esc(f)}</option>`).join('')}</select>`:`<select id="history-period" aria-label="ช่วงเวลาที่ต้องการลบ"><option value="all">ทั้งหมด</option><option value="hour">ชั่วโมงล่าสุด</option><option value="day">24 ชั่วโมง</option><option value="week">7 วัน</option></select><button id="clear-history" class="secondary-button">ล้างประวัติ</button>`}</div><div id="library-items"></div></section>`;renderLibraryItems();
+  $('#content').innerHTML=`<section class="page">${pageHeader(bookmarks?'YOUR COLLECTION':'RECENT EXPLORATIONS',bookmarks?'เก็บสิ่งที่คุณชอบ':'ย้อนรอยการค้นพบ',bookmarks?'เว็บไซต์โปรดของคุณ · Ctrl+D เพื่อบันทึกเว็บปัจจุบัน':'ประวัติจากเว็บไซต์ที่เปิดจริงในแท็บปกติ')}<div class="page-tools"><input id="library-filter" class="filter-input" placeholder="ค้นหาในรายการ…" aria-label="ค้นหาในรายการ" value="${esc(filter)}">${bookmarks?`<select id="folder-filter" aria-label="โฟลเดอร์บุ๊กมาร์ก"><option value="">ทุกโฟลเดอร์</option>${folders.map(f=>`<option ${folderFilter===f?'selected':''}>${esc(f)}</option>`).join('')}</select><button id="import-bookmarks" class="secondary-button">นำเข้าจาก Chrome/Edge</button>`:`<select id="history-period" aria-label="ช่วงเวลาที่ต้องการลบ"><option value="all">ทั้งหมด</option><option value="hour">ชั่วโมงล่าสุด</option><option value="day">24 ชั่วโมง</option><option value="week">7 วัน</option></select><button id="clear-history" class="secondary-button">ล้างประวัติ</button>`}</div><div id="library-items"></div></section>`;renderLibraryItems();
 }
 function renderLibraryItems(){
  const bookmarks=currentPage==='bookmarks';const items=(bookmarks?state.bookmarks:state.history).filter(i=>`${i.title} ${i.url}`.toLowerCase().includes(filter.toLowerCase())&&(!bookmarks||!folderFilter||i.folder===folderFilter));
@@ -167,14 +172,39 @@ function renderSettings(){
  ${aiSettingsMarkup(ai)}
  <form id="weather-settings-form" class="settings-card"><h2>${svg('cloud')}Weather</h2><p class="muted">ส่งเฉพาะชื่อเมืองไปยัง Open-Meteo เมื่อคุณกดอัปเดตอากาศ ไม่มีการใช้ตำแหน่งอัตโนมัติ</p><label class="field">Provider<select name="provider"><option value="none">ยังไม่เชื่อมต่อ</option><option value="open-meteo" ${s.weather.provider==='open-meteo'?'selected':''}>Open-Meteo</option></select></label>${field('เมือง','city',s.weather.city)}<button class="primary-button">บันทึกอากาศ</button></form>
  <div class="settings-card"><h2>ข้อมูลและสิทธิ์เว็บไซต์</h2><p class="muted">ปุ่มข้อมูลข้างช่องที่อยู่ใช้จัดการสิทธิ์รายเว็บไซต์ การเปลี่ยนสิทธิ์มีผลกับคำขอครั้งถัดไป; โหลดหน้าใหม่เพื่อหยุดการใช้งานเดิม</p><div class="button-row"><button id="clear-site-data" class="secondary-button">ล้างคุกกี้และข้อมูลเว็บไซต์</button><button class="secondary-button" data-action="private-tab">เปิดแท็บ Private</button></div><p class="muted">Private ไม่เก็บประวัติและไม่ restore แท็บ แต่ไฟล์ดาวน์โหลด/บุ๊กมาร์กที่สั่งเก็บยังอยู่ ไม่ปิดบังการเชื่อมต่อจากเว็บไซต์หรือผู้ให้บริการเครือข่าย</p><p class="muted">ตัวบล็อกโฆษณา/Tracker: ยังไม่ได้ติดตั้ง rule engine จึงไม่มีการอ้างว่าบล็อกแล้ว</p></div>
- <div class="settings-card"><h2>อัปเดตแอป</h2><p class="muted">ตรวจสอบและติดตั้งเวอร์ชันใหม่จาก GitHub Releases การติดตั้งจะรีสตาร์ทแอป</p><div class="setting-row"><div><strong>ตรวจสอบอัปเดตอัตโนมัติเมื่อเปิดแอป</strong><p>จะตรวจหนึ่งครั้งหลังเปิดราว 30 วินาที โดยไม่ดาวน์โหลดอะไรเอง</p></div><input id="auto-update" type="checkbox" ${s.autoUpdate?'checked':''} aria-label="ตรวจสอบอัปเดตอัตโนมัติ"></div><div class="button-row"><button id="check-updates" class="secondary-button" ${state.update.state==='checking'||state.update.state==='downloading'?'disabled':''}>ตรวจสอบอัปเดต</button>${state.update.state==='available'?`<button id="update-download" class="primary-button">ดาวน์โหลด v${esc(state.update.version)}</button>`:''}${state.update.state==='ready'?`<button id="update-install" class="primary-button">รีสตาร์ทเพื่อติดตั้ง</button>`:''}<button id="update-open-releases" class="secondary-button">เปิดหน้า release</button></div><p class="muted" id="update-status">${esc(state.update.message||'')}</p></div>
+   <div class="settings-card"><h2>ความเป็นส่วนตัว</h2><p class="muted">ส่งสัญญาณ Do Not Track และ Global Privacy Control ไปกับทุกคำขอของแท็บปกติและ Private เว็บไซต์ที่เคารพสัญญาณจะไม่ติดตามคุณ (สัญญาณความต้องการ ไม่ใช่การบล็อกโฆษณา)</p><div class="setting-row"><div><strong>Do Not Track (DNT)</strong><p>ส่ง header DNT: 1</p></div><input id="privacy-dnt" type="checkbox" ${s.privacy?.dnt?'checked':''} aria-label="Do Not Track"></div><div class="setting-row"><div><strong>Global Privacy Control (GPC)</strong><p>ส่ง header Sec-GPC: 1</p></div><input id="privacy-gpc" type="checkbox" ${s.privacy?.gpc?'checked':''} aria-label="Global Privacy Control"></div><div class="setting-row"><div><strong>ล้างประวัติเมื่อปิดแอป</strong><p>ลบรายการประวัติทั้งหมดตอนปิดหน้าต่าง</p></div><input id="privacy-clear-history" type="checkbox" ${s.privacy?.clearHistory?'checked':''} aria-label="ล้างประวัติเมื่อปิดแอป"></div><div class="setting-row"><div><strong>ล้างคุกกี้เมื่อปิดแอป</strong><p>ออกจากระบบเว็บไซต์ทั้งหมด (แท็บปกติ)</p></div><input id="privacy-clear-cookies" type="checkbox" ${s.privacy?.clearCookies?'checked':''} aria-label="ล้างคุกกี้เมื่อปิดแอป"></div><div class="setting-row"><div><strong>ล้างแคชเมื่อปิดแอป</strong><p>ลบไฟล์แคชของแท็บปกติ</p></div><input id="privacy-clear-cache" type="checkbox" ${s.privacy?.clearCache?'checked':''} aria-label="ล้างแคชเมื่อปิดแอป"></div></div>
+  <div class="settings-card"><h2>เบราว์เซอร์หลัก</h2><p class="muted" id="default-browser-status">กำลังตรวจสอบ…</p><div class="button-row"><button id="default-protocol" class="secondary-button">เชื่อมลิงก์ elysium:// กับแอปนี้</button><button id="default-browser-settings" class="secondary-button">เปิด Default apps ของ Windows</button></div><p class="muted">Windows ให้ผู้ใช้เลือกเบราว์เซอร์หลักเอง elysium-browser ทำได้แค่พาไปหน้าตั้งค่า</p></div>
+  <div class="settings-card"><h2>โหมด Chrome รายเว็บ</h2><p class="muted">elysium-browser ส่ง Client Hints ที่สอดคล้องกับตัวตนทุกคำขออยู่แล้ว เว็บไหนยังตรวจเข้ม (เช่น Cloudflare challenge ค้าง) แอปจะเปิดโหมดนี้ให้อัตโนมัติเมื่อหน้า verification ค้างเกิน ~10 วินาที หรือเปิดเองได้จากปุ่มข้อมูลข้างช่องที่อยู่ โหมดนี้ทำให้เว็บนั้นเห็นเราเป็น Google Chrome ทั้งระดับเครือข่ายและสคริปต์หน้าเว็บ รวม iframe ตรวจสอบบอทและคำขอเบื้องหลังของแท็บนั้น</p>${state.settings.chromeHosts.length?state.settings.chromeHosts.map(h=>`<div class="setting-row"><span>${esc(h)}</span><div class="button-row">${ib('trash','เลิกโหมด Chrome',`data-remove-chrome-host="${esc(h)}"`)}</div></div>`).join(''):'<p class="muted">ยังไม่มีเว็บในโหมดนี้ · เปิดได้จากปุ่มข้อมูลข้างช่องที่อยู่ของเว็บนั้น</p>'}</div>
+  <div class="settings-card"><h2>อัปเดตแอป</h2><p class="muted">ตรวจสอบและติดตั้งเวอร์ชันใหม่จาก GitHub Releases การติดตั้งจะรีสตาร์ทแอป</p><div class="setting-row"><div><strong>ตรวจสอบอัปเดตอัตโนมัติเมื่อเปิดแอป</strong><p>จะตรวจหนึ่งครั้งหลังเปิดราว 30 วินาที โดยไม่ดาวน์โหลดอะไรเอง</p></div><input id="auto-update" type="checkbox" ${s.autoUpdate?'checked':''} aria-label="ตรวจสอบอัปเดตอัตโนมัติ"></div><div class="button-row"><button id="check-updates" class="secondary-button" ${state.update.state==='checking'||state.update.state==='downloading'?'disabled':''}>ตรวจสอบอัปเดต</button>${state.update.state==='available'?`<button id="update-download" class="primary-button">ดาวน์โหลด v${esc(state.update.version)}</button>`:''}${state.update.state==='ready'?`<button id="update-install" class="primary-button">รีสตาร์ทเพื่อติดตั้ง</button>`:''}<button id="update-open-releases" class="secondary-button">เปิดหน้า release</button></div><p class="muted" id="update-status">${esc(state.update.message||'')}</p></div>
  <div class="settings-card"><h2>ทางลัดหน้าแรก</h2>${state.shortcuts.map(s=>`<div class="setting-row"><span>${esc(s.title)}</span><div class="button-row">${ib('edit','แก้ทางลัด',`data-edit-shortcut="${s.id}"`)}${ib('trash','ลบทางลัด',`data-remove-shortcut="${s.id}"`)}</div></div>`).join('')}<button class="secondary-button" data-action="new-shortcut">เพิ่มทางลัด</button></div><p class="about">${esc(state.browserName)} v${esc(state.version)} · Chromium ${esc(state.runtime)} · ส่วนขยาย Chrome, DRM และ OAuth บางเว็บไซต์อาจไม่รองรับ</p></section>`;
+  refreshDefaultBrowserStatus();
+}
+
+async function refreshDefaultBrowserStatus(){
+  const el=$('#default-browser-status');if(!el)return;
+  try{const r=await window.elysium.command('default-browser-check');if(!document.contains(el))return;el.textContent=r.protocol?'ลิงก์ elysium:// เปิดด้วยแอปนี้แล้ว':'ลิงก์ elysium:// ยังไม่ผูกกับแอปนี้ · กดปุ่มด้านล่างเพื่อเชื่อม';}
+  catch{if(document.contains(el))el.textContent='ตรวจสอบสถานะไม่ได้';}
 }
 
 function bytes(n){return n<1048576?`${(n/1024).toFixed(1)} KB`:`${(n/1048576).toFixed(1)} MB`;}
+const zoomPct=level=>Math.round(100*Math.pow(1.2,Math.max(-5,Math.min(5,Number(level)||0))));
+const rate=b=>`${bytes(Math.max(0,Math.round(b)))}/วินาที`;
+const eta=s=>s<60?`เหลือ ${s} วินาที`:`เหลือ ${Math.floor(s/60)} นาที${s%60?` ${s%60} วินาที`:''}`;
+function openFind(){
+  if(!active()||!isWebsite(active().url)){toast('Find ใช้ได้บนหน้าเว็บไซต์เท่านั้น');return;}
+  findOpen=true;findTabId=active().id;$('#find-bar').hidden=false;
+  const input=$('#find-input');if(document.activeElement!==input){input.focus();input.select();}
+  if(findText)command('find-start',findText);
+}
+function closeFind(silent=false){
+  if(!findOpen)return;findOpen=false;findText='';clearTimeout(findTimer);
+  const input=$('#find-input');if(input)input.value='';
+  const count=$('#find-count');if(count)count.textContent='';
+  $('#find-bar').hidden=true;if(!silent)command('find-stop');
+}
 function downloadRows(){
  const statuses={progressing:'กำลังดาวน์โหลด',completed:'เสร็จสมบูรณ์',cancelled:'ยกเลิกแล้ว',interrupted:'สะดุด'};
- return state.downloads.length?state.downloads.map(d=>`<article class="download-row">${svg('download')}<div><strong>${esc(d.filename)}</strong><small>${d.paused?'พักอยู่':statuses[d.state]} · ${bytes(d.received)}${d.total?` / ${bytes(d.total)}`:''}</small><small class="path-text">${esc(d.path||'กำลังเลือกตำแหน่งบันทึก')}</small>${d.state==='progressing'?`<progress max="${d.total||1}" ${d.total?`value="${d.received}"`:''}></progress>`:''}<div class="button-row">${d.state==='completed'?`<button class="secondary-button" data-show-download="${d.id}">เปิดโฟลเดอร์</button>`:['progressing','interrupted'].includes(d.state)?`${d.paused||d.state==='interrupted'?`<button class="secondary-button" data-resume-download="${d.id}" ${d.canResume?'':'disabled'} title="ต้องมีการรองรับจากเซิร์ฟเวอร์">ดาวน์โหลดต่อ</button>`:`<button class="secondary-button" data-pause-download="${d.id}">พัก</button>`}<button class="text-button" data-cancel-download="${d.id}">ยกเลิก</button>`:''}</div></div></article>`).join(''):empty('download','ยังไม่มีรายการดาวน์โหลด','รายการในครั้งนี้จะแสดงชื่อไฟล์และความคืบหน้าจริง · รายการที่เสร็จแล้วจะเก็บไว้ข้ามการเปิดแอป');
+   return state.downloads.length?state.downloads.map(d=>`<article class="download-row">${svg('download')}<div><strong>${esc(d.filename)}</strong><small>${d.paused?'พักอยู่':statuses[d.state]} · ${bytes(d.received)}${d.total?` / ${bytes(d.total)}`:''}${d.state==='progressing'&&d.speed>0?` · ${rate(d.speed)}${d.etaSec!=null?` · ${eta(d.etaSec)}`:''}`:''}</small><small class="path-text">${esc(d.path||'กำลังเลือกตำแหน่งบันทึก')}</small>${d.state==='progressing'?`<progress max="${d.total||1}" ${d.total?`value="${d.received}"`:''}></progress>`:''}<div class="button-row">${d.state==='completed'?`<button class="secondary-button" data-show-download="${d.id}">เปิดโฟลเดอร์</button>`:['progressing','interrupted'].includes(d.state)?`${d.paused||d.state==='interrupted'?`<button class="secondary-button" data-resume-download="${d.id}" ${d.canResume?'':'disabled'} title="ต้องมีการรองรับจากเซิร์ฟเวอร์">ดาวน์โหลดต่อ</button>`:`<button class="secondary-button" data-pause-download="${d.id}">พัก</button>`}<button class="text-button" data-cancel-download="${d.id}">ยกเลิก</button>`:''}</div></div></article>`).join(''):empty('download','ยังไม่มีรายการดาวน์โหลด','รายการในครั้งนี้จะแสดงชื่อไฟล์และความคืบหน้าจริง · รายการที่เสร็จแล้วจะเก็บไว้ข้ามการเปิดแอป');
 }
 function renderDownloads(){$('#content').innerHTML=`<section class="page">${pageHeader('YOUR DOWNLOAD HUB','ดาวน์โหลด','เลือกตำแหน่งบันทึกก่อนดาวน์โหลด · รายการที่เสร็จในโหมดปกติจะอยู่ในเครื่องข้ามการเปิดแอป · ลบไฟล์ในเครื่องแล้วรายการจะหายไปด้วย')}${downloadRows()}</section>`;}
 function renderMemory(){
@@ -234,12 +264,12 @@ function renderPanel(){
    ${state.aiPreview?`<form id="ai-send-form"><div class="ai-scope"><strong>ตรวจข้อความก่อนส่ง</strong><p>${esc(state.aiPreview.provider.provider)} · ${esc(state.aiPreview.provider.model)}</p><small>${esc(state.aiPreview.provider.endpoint)}</small><p>ส่งเฉพาะชื่อหน้า URL และข้อความด้านล่าง ${state.aiPreview.text.length.toLocaleString()} ตัวอักษร พร้อมคำถามของคุณ</p><details><summary>ดูเนื้อหาที่จะส่ง</summary><pre>${esc(state.aiPreview.text||'(ไม่มีเนื้อหาเว็บไซต์ — ช่วยร่างข้อความเท่านั้น)')}</pre></details></div><label class="field">คำถาม / ภาษาปลายทาง / คำขอ<textarea name="question" id="ai-question" rows="3" placeholder="สิ่งที่อยากให้ช่วย…"></textarea></label><label class="check-label"><input name="consent" type="checkbox" required>ยินยอมส่งข้อความนี้ไปยัง provider ที่แสดง</label><button class="primary-button" ${state.aiBusy?'disabled':''}>${state.aiBusy?'กำลังรอ provider…':'ส่งข้อความที่ตรวจแล้ว'}</button></form>`:''}${state.aiResult?`<div class="ai-response"><small>คำตอบจาก provider</small><pre>${esc(state.aiResult)}</pre><button class="secondary-button" data-action="ai-to-note">เก็บเป็นโน้ต</button></div>`:''}<p class="panel-footnote">ไม่ส่ง cookies, passwords หรือข้อมูลทุกแท็บ และ AI ไม่มีสิทธิ์ควบคุมเครื่องหรือทำงานภายนอก</p>`;
  }else if(panel==='info'){
    const origin=isWebsite(tab.url)?new URL(tab.url).origin:'';const choices={media:'กล้อง / ไมโครโฟน',geolocation:'ตำแหน่งที่ตั้ง',notifications:'การแจ้งเตือน'};
-   el.innerHTML=origin?`<div class="site-info"><h3>${esc(host(tab.url))}</h3><p class="notice">${tab.url.startsWith('https:')?'HTTPS · ใช้การตรวจใบรับรองตามปกติ':'HTTP · การเชื่อมต่อนี้ไม่มีการเข้ารหัส'}</p><p class="muted">สิทธิ์มีผลกับคำขอใหม่ โหลดหน้าอีกครั้งหากกำลังใช้อุปกรณ์อยู่</p>${Object.entries(choices).map(([permission,label])=>`<label class="permission-row">${label}<select data-permission="${permission}" data-origin="${esc(origin)}" ${tab.private?'disabled':''}>${[['ask','ถามก่อน'],['allow','อนุญาต'],['deny','ปฏิเสธ']].map(([value,label])=>`<option value="${value}" ${state.permissions[origin]?.[permission]===value?'selected':''}>${label}</option>`).join('')}</select></label>`).join('')}${tab.private?'<p class="muted">Private ถามสิทธิ์เฉพาะครั้งนี้ ไม่บันทึกกฎถาวร</p>':''}<button class="secondary-button" data-clear-origin="${esc(origin)}">ล้างข้อมูลเว็บไซต์นี้</button><p class="muted">Tracker/ad blocking: ยังไม่มี rule engine</p></div>`:empty('info','หน้าใน elysium-browser','ข้อมูลเว็บไซต์จะแสดงเมื่อเปิด HTTP/HTTPS');
+   el.innerHTML=origin?`<div class="site-info"><h3>${esc(host(tab.url))}</h3><p class="notice">${tab.url.startsWith('https:')?'HTTPS · ใช้การตรวจใบรับรองตามปกติ':'HTTP · การเชื่อมต่อนี้ไม่มีการเข้ารหัส'}</p><p class="muted">สิทธิ์มีผลกับคำขอใหม่ โหลดหน้าอีกครั้งหากกำลังใช้อุปกรณ์อยู่</p>${Object.entries(choices).map(([permission,label])=>`<label class="permission-row">${label}<select data-permission="${permission}" data-origin="${esc(origin)}" ${tab.private?'disabled':''}>${[['ask','ถามก่อน'],['allow','อนุญาต'],['deny','ปฏิเสธ']].map(([value,label])=>`<option value="${value}" ${state.permissions[origin]?.[permission]===value?'selected':''}>${label}</option>`).join('')}</select></label>`).join('')}${tab.private?'<p class="muted">Private ถามสิทธิ์เฉพาะครั้งนี้ ไม่บันทึกกฎถาวร</p>':''}<label class="check-label"><input type="checkbox" data-chrome-host="${esc(host(tab.url))}" ${state.settings.chromeHosts.includes(host(tab.url))?'checked':''}>เปิดเว็บนี้แบบ Google Chrome (ทั้งเครือข่ายและสคริปต์หน้าเว็บ สำหรับเว็บที่รองรับเฉพาะ Chrome/Edge)</label><button class="secondary-button" data-clear-origin="${esc(origin)}">ล้างข้อมูลเว็บไซต์นี้</button><p class="muted">Tracker/ad blocking: ยังไม่มี rule engine</p></div>`:empty('info','หน้าใน elysium-browser','ข้อมูลเว็บไซต์จะแสดงเมื่อเปิด HTTP/HTTPS');
  }
 }
 
 const paletteCommands=[
- ['แท็บใหม่','new-tab','plus'],['เปิดแท็บที่ปิดล่าสุด','reopen-tab','history'],['แท็บ Private','private-tab','moon'],['ปักหมุด / เลิกปักหมุดแท็บ','pin-current','pin'],['ปิด / เปิดเสียงแท็บ','mute-current','volume'],['Split View','split','split'],['Reader อ่านหน้าเว็บ','reader','reader'],['เก็บข้อความที่เลือก','clip','clip'],['elysium-browser AI','panel-ai','sparkles'],['Notes & Clip','panel-notes','notes'],['Calendar ปฏิทิน','page-calendar','calendar'],['เพิ่มนัดหมาย','new-calendar-event','calendar'],['Post-it ใหม่','new-postit','postit'],['ตั้งเวลาแจ้งเตือน','new-reminder','bell'],['ดาวน์โหลด','page-downloads','download'],['บุ๊กมาร์ก','page-bookmarks','bookmark'],['ประวัติ','page-history','history'],['Workspaces','page-workspaces','grid'],['Theme Studio','page-themes','wand'],['Memory Saver','page-memory','moon'],['การตั้งค่า','page-settings','settings'],
+   ['แท็บใหม่','new-tab','plus'],['เปิดแท็บที่ปิดล่าสุด','reopen-tab','history'],['แท็บ Private','private-tab','moon'],['ค้นหาในหน้านี้','find','search'],['ปักหมุด / เลิกปักหมุดแท็บ','pin-current','pin'],['ปิด / เปิดเสียงแท็บ','mute-current','volume'],['Split View','split','split'],['Reader อ่านหน้าเว็บ','reader','reader'],['เก็บข้อความที่เลือก','clip','clip'],['elysium-browser AI','panel-ai','sparkles'],['Notes & Clip','panel-notes','notes'],['Calendar ปฏิทิน','page-calendar','calendar'],['เพิ่มนัดหมาย','new-calendar-event','calendar'],['Post-it ใหม่','new-postit','postit'],['ตั้งเวลาแจ้งเตือน','new-reminder','bell'],['ดาวน์โหลด','page-downloads','download'],['บุ๊กมาร์ก','page-bookmarks','bookmark'],['ประวัติ','page-history','history'],['Workspaces','page-workspaces','grid'],['Theme Studio','page-themes','wand'],['Memory Saver','page-memory','moon'],['การตั้งค่า','page-settings','settings'],
 ];
 async function openPalette(fromMain=false){
  openingDialog=true;closeDialogs();if(!fromMain)await command('overlay',true);$('#palette-input').value='';paletteIndex=0;renderPalette();$('#palette-dialog').showModal();$('#palette-input').focus();openingDialog=false;
@@ -281,7 +311,9 @@ function syncAIAuthFields(){
 }
 
 async function perform(action){
- if(action==='palette')return openPalette();if(action==='split')return openSplit();if(action==='close-dialog'){closeDialogs();return;}
+  if(action==='palette')return openPalette();if(action==='split')return openSplit();if(action==='close-dialog'){closeDialogs();return;}
+  if(action==='find')return openFind();
+  if(action==='bookmark-import'){const r=await command('bookmark-import');if(r.ok)toast(r.imported?`นำเข้าบุ๊กมาร์ก ${r.imported} รายการ${r.skipped?` · ข้ามของซ้ำ ${r.skipped} รายการ`:''}`:'ไม่พบรายการใหม่ในไฟล์ที่เลือก');return;}
  if(action==='new-workspace')return editWorkspace();if(action==='new-shortcut')return editShortcut();
  if(action==='pin-current')return command('pin-tab',state.activeId);if(action==='mute-current')return command('mute-tab',state.activeId);
  if(action.startsWith('page-'))return command('internal',action.slice(5));if(action.startsWith('panel-'))return command('panel',action.slice(6));
@@ -329,12 +361,18 @@ document.addEventListener('click',async event=>{
  else if(d.deleteReminder)await confirmAction('ลบการแจ้งเตือนนี้?','รายการและวันเวลาที่ตั้งไว้จะถูกลบ',()=>command('reminder-delete',d.deleteReminder));
  else if(d.snoozeReminder){const select=button.closest('.reminder-snooze')?.querySelector('select');if((await command('reminder-snooze',{id:d.snoozeReminder,minutes:Number(select?.value)||10})).ok)toast('เลื่อนเวลาแจ้งเตือนแล้ว');}
  else if(d.suspend)await confirmAction('พักแท็บนี้?','หน้าเว็บจะถูกปิดและโหลดใหม่เมื่อกลับมา ข้อมูลฟอร์มอาจสูญหาย แท็บที่มีเสียง ดาวน์โหลด capture หรือ iframe จะไม่ถูกพัก',()=>command('suspend-tab',{id:d.suspend,confirmed:true}));
- else if(d.clearOrigin)await confirmAction('ล้างข้อมูลเว็บไซต์นี้?','อาจออกจากระบบเว็บไซต์นี้ โดยไม่ล้างข้อมูลเว็บไซต์อื่น',()=>command('clear-origin-data',d.clearOrigin));
+  else if(d.clearOrigin)await confirmAction('ล้างข้อมูลเว็บไซต์นี้?','อาจออกจากระบบเว็บไซต์นี้ โดยไม่ล้างข้อมูลเว็บไซต์อื่น',()=>command('clear-origin-data',d.clearOrigin));
+  else if(d.removeChromeHost)await command('compat-chrome',{host:d.removeChromeHost,enabled:false});
  else {for(const [key,action]of Object.entries({showDownload:'show-download',cancelDownload:'cancel-download',pauseDownload:'pause-download',resumeDownload:'resume-download'}))if(d[key])await command(action,d[key]);}
 });
 
 $('#address-form').addEventListener('submit',async e=>{e.preventDefault();const value=$('#address').value;$('#address').blur();await command('navigate',value);});
 $('#address').addEventListener('keydown',e=>{if(e.key==='Escape'){$('#address').blur();render(state);}});
+$('#zoom-badge').onclick=()=>command('zoom-reset');
+$('#find-input').addEventListener('keydown',async e=>{if(e.key==='Enter'){e.preventDefault();await command(e.shiftKey?'find-prev':'find-next',findText||undefined);}else if(e.key==='Escape'){e.preventDefault();closeFind();}});
+$('#find-prev').onclick=()=>command('find-prev',findText||undefined);
+$('#find-next').onclick=()=>command('find-next',findText||undefined);
+$('#find-close').onclick=()=>closeFind();
 $('#back').onclick=()=>command('back');$('#forward').onclick=()=>command('forward');$('#reload').onclick=()=>command(active()?.loading?'stop':'reload');$('#new-tab').onclick=async()=>{if((await command('new-tab')).ok)focusAddress();};
 $('#bookmark-toggle').onclick=async()=>{if((await command('bookmark')).ok)toast('อัปเดตบุ๊กมาร์กแล้ว');};$('#compact-toggle').onclick=()=>command('settings',{compactSidebar:!state.settings.compactSidebar});
 $('#page-info').onclick=()=>command('panel',state.ui.panel==='info'?null:'info');$('#close-panel').onclick=()=>command('panel',null);
@@ -350,7 +388,8 @@ document.addEventListener('submit',async e=>{
  if(e.target.id==='ai-send-form'){e.preventDefault();const data=Object.fromEntries(new FormData(e.target));await command('ai-send',{id:state.aiPreview.id,question:data.question,consent:data.consent==='on'});}
 });
 document.addEventListener('input',e=>{
- if(e.target.id==='library-filter'){filter=e.target.value;renderLibraryItems();}
+  if(e.target.id==='library-filter'){filter=e.target.value;renderLibraryItems();}
+  if(e.target.id==='find-input'){findText=e.target.value;clearTimeout(findTimer);findTimer=setTimeout(()=>{if(findText)command('find-start',findText);},250);}
  if(['note-title','note-body'].includes(e.target.id)){noteDraft[e.target.id==='note-title'?'title':'body']=e.target.value;noteDirty=true;if($('#note-status'))$('#note-status').textContent='มีการแก้ไขที่ยังไม่บันทึก';}
 });
 document.addEventListener('change',async e=>{
@@ -368,16 +407,25 @@ document.addEventListener('change',async e=>{
  if(id==='memory-enabled')await command('settings',{memorySaver:el.checked});
  if(id==='memory-minutes')await command('settings',{suspendMinutes:Number(el.value)});
   if(id==='memory-exceptions')await command('settings',{memoryExceptions:el.value.split(',')});
-  if(id==='auto-update')await command('settings',{autoUpdate:el.checked});
+   if(id==='auto-update')await command('settings',{autoUpdate:el.checked});
+  if(id==='privacy-dnt')await command('settings',{privacy:{dnt:el.checked}});
+  if(id==='privacy-gpc')await command('settings',{privacy:{gpc:el.checked}});
+  if(id==='privacy-clear-history')await command('settings',{privacy:{clearHistory:el.checked}});
+  if(id==='privacy-clear-cookies')await command('settings',{privacy:{clearCookies:el.checked}});
+  if(id==='privacy-clear-cache')await command('settings',{privacy:{clearCache:el.checked}});
  if(id==='ai-provider'){if(el.value==='ollama'&&!$('#ai-settings-form').elements.endpoint.value)$('#ai-settings-form').elements.endpoint.value='http://127.0.0.1:11434';syncAIAuthFields();}
  if(d.todo)await command('todo-save',{id:d.todo,done:el.checked});
  if(d.reminderDone)await command('reminder-done',{id:d.reminderDone,done:el.checked});
  if(d.autoSuspend)await command('tab-auto-suspend',{id:d.autoSuspend,enabled:el.checked});
  if(d.moveTab)await command('move-tab',{id:d.moveTab,workspaceId:el.value});
- if(d.permission)await command('permission-set',{origin:d.origin,permission:d.permission,value:el.value});
+  if(d.permission)await command('permission-set',{origin:d.origin,permission:d.permission,value:el.value});
+  if(d.chromeHost)await command('compat-chrome',{host:d.chromeHost,enabled:el.checked});
 });
 document.addEventListener('click',async e=>{
- if(e.target.closest('#clear-history')){const period=$('#history-period').value;await confirmAction('ล้างประวัติการเข้าชม?','ลบรายการในช่วงเวลาที่เลือก บุ๊กมาร์กและข้อมูลเว็บไซต์ยังคงอยู่',()=>command('clear-history',period));}
+  if(e.target.closest('#clear-history')){const period=$('#history-period').value;await confirmAction('ล้างประวัติการเข้าชม?','ลบรายการในช่วงเวลาที่เลือก บุ๊กมาร์กและข้อมูลเว็บไซต์ยังคงอยู่',()=>command('clear-history',period));}
+  if(e.target.closest('#import-bookmarks'))await perform('bookmark-import');
+  if(e.target.closest('#default-protocol')){const r=await command('default-protocol');toast(r.protocol?'เชื่อมลิงก์ elysium:// กับแอปนี้แล้ว':'เชื่อมลิงก์ไม่ได้บนเครื่องนี้');refreshDefaultBrowserStatus();}
+  if(e.target.closest('#default-browser-settings'))await command('default-browser-settings');
   if(e.target.closest('#clear-site-data'))await confirmAction('ล้างข้อมูลเว็บไซต์ทั้งหมด?','จะออกจากระบบเว็บไซต์ และลบคุกกี้/แคชของแท็บปกติ',()=>command('clear-site-data'));
   if(e.target.closest('#check-updates'))await command('update-check');
   if(e.target.closest('#update-download'))await command('update-download');
@@ -389,5 +437,8 @@ $('#tabs').addEventListener('dragstart',e=>{draggedTab=e.target.closest('[data-t
 $('#tabs').addEventListener('dragover',e=>e.preventDefault());$('#tabs').addEventListener('drop',async e=>{e.preventDefault();const beforeId=e.target.closest('[data-tab-id]')?.dataset.tabId;if(draggedTab&&beforeId&&draggedTab!==beforeId)await command('reorder-tab',{id:draggedTab,beforeId});draggedTab=null;});
 $('#tabs').addEventListener('contextmenu',async e=>{const id=e.target.closest('[data-tab-id]')?.dataset.tabId;if(!id)return;e.preventDefault();await command('activate-tab',id);await showForm('จัดการแท็บ',`<div class="menu-actions"><button type="button" data-action="pin-current">${svg('pin')}ปักหมุด / เลิกปักหมุด</button><button type="button" data-action="mute-current">${svg('volume')}ปิด / เปิดเสียง</button><button type="button" data-page="workspaces">${svg('grid')}ย้ายไป workspace</button><button type="button" data-action="reopen-tab">${svg('history')}เปิดแท็บที่ปิดล่าสุด</button></div>`,()=>true,'เสร็จ');});
 window.elysium.onState(render);window.elysium.onFocusAddress(focusAddress);window.elysium.onPalette(()=>openPalette(true));
+window.elysium.onToast(message=>toast(message));
+window.elysium.onFindOpen(()=>openFind());
+window.elysium.onFoundInPage(result=>{if(!findOpen)return;$('#find-count').textContent=result.matches?`${result.activeMatchOrdinal}/${result.matches}`:'ไม่พบ';});
 window.elysium.getState().then(render).catch(()=>toast('เริ่มต้น elysium-browser ไม่สำเร็จ'));
 setInterval(()=>{if($('#clock'))$('#clock').textContent=new Date().toLocaleTimeString('th-TH',{hour:'2-digit',minute:'2-digit'});},30000);

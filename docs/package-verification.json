@@ -1,5 +1,5 @@
 {
-  "version": "1.4.0",
+  "version": "1.5.0",
   "buildDirectory": "release",
   "checkedFiles": [
     "src/brand.css",
@@ -90,11 +90,11 @@
     "assets/elysium.ico",
     "assets/elysium.png"
   ],
-  "archiveSHA256": "26ca74b91243d5e7572ed10595f862574bba3ab2a26c653ae1efa98a41221bac",
+  "archiveSHA256": "63e6287c824df4b3685b2d3ff12055aad9dbb74baa5c8030a7fc8dd1a96eda10",
   "portable": {
-    "file": "release/elysium-browser-1.4.0-portable.exe",
-    "bytes": 113616725,
-    "sha256": "3cef0af34e060d1f55290c5de2a6a1920fb968d951758d430872010bf009994c"
+    "file": "release/elysium-browser-1.5.0-portable.exe",
+    "bytes": 113621409,
+    "sha256": "e5d8ca8309e99f5afd74e6255d1106736384ca4fd20b19e0e9ed04b93f876c79"
   },
   "sourceAndPackagedAssetsIdentical": true
 }

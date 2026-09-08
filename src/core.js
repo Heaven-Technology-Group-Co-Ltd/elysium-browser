@@ -30,6 +30,156 @@ function isWebURL(value) {
   catch { return false; }
 }
 
+// Stock Chrome User-Agent for per-site compatibility mode (server allowlists
+// that only know Chrome/Edge). JS navigator.userAgent still reports elysium.
+function stockChromeUA(chromeVersion) {
+  return `Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/${chromeVersion} Safari/537.36`;
+}
+
+// Low-entropy Client Hints brands, mirroring how Edge/Brave carry their own
+// product brand next to Chromium. chromeMode impersonates Google Chrome.
+function hintBrands({ chromeMode = false, chromeMajor = '', appMajor = '1' } = {}) {
+  const major = String(chromeMajor || '').split('.')[0] || '';
+  if (chromeMode) return `"Google Chrome";v="${major}", "Chromium";v="${major}", "Not/A)Brand";v="99"`;
+  return `"elysium-browser";v="${String(appMajor || '1').split('.')[0]}", "Chromium";v="${major}", "Not/A)Brand";v="99"`;
+}
+
+function sanitizeChromeHosts(input) {
+  if (!Array.isArray(input)) return [];
+  const hosts = [];
+  for (const entry of input) {
+    const host = typeof entry === 'string' ? entry.toLowerCase().slice(0, 253) : hostnameOf(entry?.url || '');
+    if (host && /^[a-z0-9.-]+(:\d+)?$/.test(host) && !hosts.includes(host)) hosts.push(host);
+    if (hosts.length >= 200) break;
+  }
+  return hosts;
+}
+
+// Chrome-mode decision for one request: stock identity when the request host
+// itself is opted in, or when the tab that caused it currently shows an
+// opted-in site (covers challenge CDNs, Turnstile and beacons on third-party
+// hosts so the whole session stays consistent like stock Chrome).
+function isChromeModeRequest({ requestHost = '', ownerUrl = '', chromeHosts = [] } = {}) {
+  if (!Array.isArray(chromeHosts) || !chromeHosts.length) return false;
+  if (requestHost && chromeHosts.includes(requestHost)) return true;
+  const pageHost = hostnameOf(ownerUrl || '');
+  return !!pageHost && chromeHosts.includes(pageHost);
+}
+// Interstitial titles that mean a bot-verification page is showing instead of
+// the real site (Cloudflare and similar). Used to auto-offer Chrome mode.
+const CHALLENGE_TITLE_PATTERN = /just a moment|attention required/i;
+
+// Returns the host to auto-enable when a verification page looks stuck, else ''.
+function shouldAutoChromeMode({ title = '', url = '', chromeHosts = [] } = {}) {
+  if (!CHALLENGE_TITLE_PATTERN.test(String(title || ''))) return '';
+  const host = hostnameOf(url || '');
+  if (!host || (Array.isArray(chromeHosts) && chromeHosts.includes(host))) return '';
+  return host;
+}
+// Guest-page shim for per-site Chrome mode: reports a stock Chrome identity to
+// page scripts (navigator.userAgent + userAgentData) on user-opted hosts only.
+// Cloudflare-style bot scoring reads these JS signals alongside headers; without
+// the shim the page still sees the elysium product brand and holds challenges.
+function buildCompatShim({ userAgent = '', chromeVersion = '' } = {}) {
+  const major = String(chromeVersion || '').split('.')[0] || '';
+  const full = String(chromeVersion || major || '');
+  const payload = JSON.stringify({ userAgent: String(userAgent || ''), major, full });
+  return `(() => { try {
+    const config = ${payload};
+    if (!config.userAgent || navigator.userAgent === config.userAgent) return;
+    const brands = [{ brand: 'Google Chrome', version: config.major }, { brand: 'Chromium', version: config.major }, { brand: 'Not/A)Brand', version: '99' }];
+    const fullList = [{ brand: 'Google Chrome', version: config.full || config.major }, { brand: 'Chromium', version: config.full || config.major }, { brand: 'Not/A)Brand', version: '99.0.0.0' }];
+    const mask = (fn, name) => { try { Object.defineProperty(fn, 'toString', { value: () => ('function ' + name + '() { [native code] }'), configurable: true }); } catch (e) {} };
+    const uaGetter = () => config.userAgent;
+    mask(uaGetter, 'get userAgent');
+    Object.defineProperty(navigator, 'userAgent', { get: uaGetter, configurable: true });
+    const highEntropy = async (hints) => {
+      const out = {};
+      for (const hint of hints || []) {
+        if (hint === 'architecture') out.architecture = 'x86';
+        else if (hint === 'bitness') out.bitness = '64';
+        else if (hint === 'brands') out.brands = brands.slice();
+        else if (hint === 'fullVersionList') out.fullVersionList = fullList.slice();
+        else if (hint === 'mobile') out.mobile = false;
+        else if (hint === 'model') out.model = '';
+        else if (hint === 'platform') out.platform = 'Windows';
+        else if (hint === 'platformVersion') out.platformVersion = '15.0.0';
+        else if (hint === 'uaFullVersion') out.uaFullVersion = config.full || config.major;
+        else if (hint === 'wow64') out.wow64 = false;
+      }
+      return out;
+    };
+    mask(highEntropy, 'getHighEntropyValues');
+    const toJSON = () => ({ brands: brands.slice(), mobile: false, platform: 'Windows' });
+    mask(toJSON, 'toJSON');
+    const uaData = { brands: brands.slice(), mobile: false, platform: 'Windows', getHighEntropyValues: highEntropy, toJSON };
+    const dataGetter = () => uaData;
+    mask(dataGetter, 'get userAgentData');
+    Object.defineProperty(navigator, 'userAgentData', { get: dataGetter, configurable: true });
+  } catch (e) {} })();`;
+}
+function hostnameOf(url) {
+  try {
+    const parsed = new URL(url);
+    if (!['https:', 'http:'].includes(parsed.protocol)) return '';
+    return parsed.hostname.toLowerCase().slice(0, 253);
+  } catch { return ''; }
+}
+
+// Electron zoom levels step ~x1.2 per level (Chromium convention).
+function zoomPercent(level) {
+  if (!Number.isFinite(level)) return 100;
+  return Math.round(100 * Math.pow(1.2, Math.max(-5, Math.min(5, level))));
+}
+
+// Remember a per-site zoom level; level 0 removes the override. Capped at 200 hosts.
+function rememberZoom(levels, host, level) {
+  const store = levels && typeof levels === 'object' ? levels : {};
+  if (!host || typeof host !== 'string') return store;
+  const clamped = Math.max(-5, Math.min(5, Number(level) || 0));
+  delete store[host];
+  if (clamped !== 0) store[host] = clamped;
+  for (const key of Object.keys(store).slice(0, Math.max(0, Object.keys(store).length - 200))) delete store[key];
+  return store;
+}
+
+function sanitizePrivacy(input) {
+  const base = { dnt: true, gpc: true, clearHistory: false, clearCookies: false, clearCache: false };
+  if (!input || typeof input !== 'object') return base;
+  for (const key of Object.keys(base)) if (typeof input[key] === 'boolean') base[key] = input[key];
+  return base;
+}
+
+// Parse Netscape-format bookmark exports (Chrome/Edge "Export bookmarks to HTML").
+// Returns [{ title, url, folder }] capped at 2000 entries, web URLs only.
+function parseBookmarksHTML(html) {
+  const results = [];
+  if (typeof html !== 'string' || !html) return results;
+  const source = html.slice(0, 5000000);
+  const decode = value => String(value ?? '').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#39;|&apos;/g, "'").replace(/&#(\d+);/g, (_m, code) => { try { return String.fromCodePoint(Math.min(0x10FFFF, Number(code))); } catch { return ''; } }).replace(/<[^>]*>/g, '').trim();
+  const tagPattern = /<(\/?)dl\b[^>]*>|<h3\b[^>]*>([^<]*)<\/h3\s*>|<a\b([^>]*)>([^<]*)<\/a\s*>/gi;
+  let depth = 0;
+  const folders = [];
+  let match;
+  while ((match = tagPattern.exec(source)) && results.length < 2000) {
+    const [full, closing, folderName, anchorAttrs, anchorText] = match;
+    if (/^<h3/i.test(full)) {
+      folders.length = depth;
+      folders.push(decode(folderName).slice(0, 60));
+    } else if (/^<a/i.test(full)) {
+      const href = /href\s*=\s*("([^"]*)"|'([^']*)'|([^\s>]+))/i.exec(anchorAttrs || '');
+      const url = decode(href?.[2] ?? href?.[3] ?? href?.[4] ?? '');
+      if (!isWebURL(url)) continue;
+      results.push({ title: decode(anchorText).slice(0, 300) || url, url, folder: folders[depth - 1] || '' });
+    } else {
+      // Remaining alternative is <DL> (open) or </DL> (close).
+      if (closing) { depth = Math.max(0, depth - 1); folders.length = depth; }
+      else depth += 1;
+    }
+  }
+  return results;
+}
+
 // Legacy Cherry builds used cherry:// internal URLs; accept them as aliases.
 function normalizeInternalURL(url) {
   return typeof url === 'string' ? url.replace(/^cherry:\/\//i, 'elysium://') : url;
@@ -55,9 +205,9 @@ function resolveAddress(input, engine = 'google') {
 
 function defaults() {
   return {
-    schemaVersion: SCHEMA_VERSION, calendarEvents: [], bookmarks: [], history: [], savedTabs: [], sessionTabs: [], downloads: [],
+    schemaVersion: SCHEMA_VERSION, calendarEvents: [], bookmarks: [], history: [], savedTabs: [], sessionTabs: [], downloads: [], zoomLevels: {},
     workspaces: [{ id: 'personal', name: 'Personal', color: '#2f6bff' }], activeWorkspace: 'personal', notes: [], postIts: [], reminders: [], todos: [],
-    settings: { searchEngine: 'google', restoreTabs: true, compactSidebar: false, memorySaver: false, suspendMinutes: 20, memoryExceptions: [], autoUpdate: true,
+    settings: { searchEngine: 'google', restoreTabs: true, compactSidebar: false, memorySaver: false, suspendMinutes: 20, memoryExceptions: [], autoUpdate: true, privacy: sanitizePrivacy(), chromeHosts: [],
       theme: { variant: 'midnight', character: 'cherry', background: 'city', graphics: true, motion: true, glow: 45, art: 100 },
       ai: { provider: 'none', endpoint: '', model: '' }, weather: { provider: 'none', city: '', latitude: null, longitude: null } },
     permissions: {}, secrets: {},
@@ -133,6 +283,17 @@ class BrowserStore {
       if (Number.isFinite(saved.settings?.suspendMinutes)) this.data.settings.suspendMinutes = Math.max(5, Math.min(240, saved.settings.suspendMinutes));
       if (Array.isArray(saved.settings?.memoryExceptions)) this.data.settings.memoryExceptions = saved.settings.memoryExceptions.filter(x => typeof x === 'string').slice(0, 200);
       if (typeof saved.settings?.autoUpdate === 'boolean') this.data.settings.autoUpdate = saved.settings.autoUpdate;
+      this.data.settings.privacy = sanitizePrivacy(saved.settings?.privacy);
+      this.data.settings.chromeHosts = sanitizeChromeHosts(saved.settings?.chromeHosts);
+      if (saved.zoomLevels && typeof saved.zoomLevels === 'object') {
+        for (const [host, level] of Object.entries(saved.zoomLevels).slice(0, 500)) {
+          if (typeof host === 'string' && host && Number.isFinite(Number(level))) {
+            const clamped = Math.max(-5, Math.min(5, Number(level)));
+            if (clamped !== 0) this.data.zoomLevels[host.slice(0, 253)] = clamped;
+          }
+          if (Object.keys(this.data.zoomLevels).length >= 200) break;
+        }
+      }
       const theme = saved.settings?.theme;
       if (theme && typeof theme === 'object') this.data.settings.theme = sanitizeTheme(theme);
       if (saved.settings?.ai && ['none', 'ollama', 'openai-compatible', 'oauth-openai-compatible'].includes(saved.settings.ai.provider)) {
@@ -259,4 +420,4 @@ function computeLayout(width, height, { compact = false, panel = false, split = 
   return { sidebar, panelWidth, area, left: { ...area, y: top + splitHeader, height: Math.max(0, area.height - splitHeader), width: leftWidth }, right: { x: sidebar + leftWidth + divider, y: top + splitHeader, width: Math.max(0, area.width - leftWidth - divider), height: Math.max(0, area.height - splitHeader) }, dividerX: sidebar + leftWidth };
 }
 
-module.exports = { BrowserStore, resolveAddress, isWebURL, normalizeInternalURL, INTERNAL_PAGES, SEARCH_ENGINES, POST_IT_COLORS, SCHEMA_VERSION, FINISHED_DOWNLOAD_STATES, filterExistingDownloads, sanitizeTheme, computeLayout };
+module.exports = { BrowserStore, resolveAddress, isWebURL, hostnameOf, zoomPercent, rememberZoom, sanitizePrivacy, sanitizeChromeHosts, stockChromeUA, hintBrands, buildCompatShim, isChromeModeRequest, shouldAutoChromeMode, parseBookmarksHTML, normalizeInternalURL, INTERNAL_PAGES, SEARCH_ENGINES, POST_IT_COLORS, SCHEMA_VERSION, FINISHED_DOWNLOAD_STATES, filterExistingDownloads, sanitizeTheme, computeLayout };

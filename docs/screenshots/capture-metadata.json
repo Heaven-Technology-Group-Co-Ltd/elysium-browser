@@ -2,7 +2,7 @@
   "environment": {
     "electron": "44.2.0",
     "chromium": "152.0.7977.76",
-    "version": "1.4.0",
+    "version": "1.5.0",
     "displays": [
       {
         "size": {

@@ -8,7 +8,7 @@
 ## 1. Metadata & Project Overview
 
 - **Project Name:** elysium-browser (elysium-browser)
-- **Version:** 1.4.0
+- **Version:** 1.5.0
 - **Application Type:** Desktop Web Browser (Windows Portable)
 - **Primary Runtime:** Electron 44.2.0 (Chromium engine)
 - **Architectural Style:** Multi-process Electron app using WebContentsView (separated UI shell and external content)

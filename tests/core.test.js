@@ -5,6 +5,11 @@ const os = require('node:os');
 const path = require('node:path');
 const { resolveAddress, isWebURL, BrowserStore } = require('../src/core');
 const { computeLayout, sanitizeTheme, filterExistingDownloads } = require('../src/core');
+const { hostnameOf, zoomPercent, rememberZoom, sanitizePrivacy, parseBookmarksHTML } = require('../src/core');
+const { sanitizeChromeHosts, stockChromeUA, hintBrands } = require('../src/core');
+const { buildCompatShim } = require('../src/core');
+const { isChromeModeRequest } = require('../src/core');
+const { shouldAutoChromeMode } = require('../src/core');
 const { providerURL } = require('../src/providers');
 const { createOAuthAttempt, normalizeToken, oauthFingerprint, safeStateEqual, secureOAuthURL } = require('../src/oauth');
 
@@ -203,4 +208,128 @@ test('OAuth token normalization preserves refresh tokens without exposing provid
   assert.equal(normalizeToken({ access_token: 'new', expires_in: 120 }, 'old-refresh').refreshToken, 'old-refresh');
   assert.throws(() => normalizeToken({ access_token: 'access', token_type: 'mac' }));
   assert.throws(() => normalizeToken({ token_type: 'bearer' }));
+});
+
+test('per-site zoom helpers map hosts, clamp levels and format percents', t => {
+  assert.equal(hostnameOf('https://Mail.Example.com/inbox'), 'mail.example.com');
+  assert.equal(hostnameOf('http://localhost:3000/x'), 'localhost');
+  assert.equal(hostnameOf('elysium://settings'), '');
+  assert.equal(hostnameOf('not a url'), '');
+  assert.equal(zoomPercent(0), 100);
+  assert.equal(zoomPercent(1), 120);
+  assert.equal(zoomPercent(-1), 83);
+  assert.equal(zoomPercent(99), zoomPercent(5));
+  assert.equal(zoomPercent(NaN), 100);
+  const levels = rememberZoom({}, 'example.com', 1);
+  assert.deepEqual(levels, { 'example.com': 1 });
+  rememberZoom(levels, 'example.com', 0);
+  assert.deepEqual(levels, {});
+  rememberZoom(levels, 'example.com', 99);
+  assert.equal(levels['example.com'], 5);
+  assert.equal(rememberZoom(null, 'example.com', 1)['example.com'], 1);
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'elysium-core-'));
+  t.after(() => removeTestDirectory(directory));
+  const store = new BrowserStore(directory);
+  assert.deepEqual(store.data.zoomLevels, {});
+  assert.deepEqual(store.data.settings.privacy, { dnt: true, gpc: true, clearHistory: false, clearCookies: false, clearCache: false });
+  store.data.zoomLevels = rememberZoom(store.data.zoomLevels, 'example.com', -1);
+  store.data.settings.privacy.clearHistory = true;
+  store.save();
+  const restored = new BrowserStore(directory);
+  assert.equal(restored.data.zoomLevels['example.com'], -1);
+  assert.equal(restored.data.settings.privacy.clearHistory, true);
+  assert.equal(restored.data.settings.privacy.dnt, true);
+});
+
+test('privacy settings sanitize unknown or hostile stored values', () => {
+  assert.deepEqual(sanitizePrivacy(null), { dnt: true, gpc: true, clearHistory: false, clearCookies: false, clearCache: false });
+  assert.deepEqual(sanitizePrivacy({ dnt: false, gpc: 'yes', clearCookies: 1, extra: true }), { dnt: false, gpc: true, clearHistory: false, clearCookies: false, clearCache: false });
+});
+
+test('bookmark import parses Netscape HTML exports with folders', () => {
+  const html = '<!DOCTYPE NETSCAPE-Bookmark-file-1><DL><p>'
+    + '<DT><H3 ADD_DATE="1">งาน</H3><DL><p>'
+    + '<DT><A HREF="https://example.com/docs" ADD_DATE="1">คู่มือ</A>'
+    + "<DT><A HREF='https://mail.example.com/'>เมล</A>"
+    + '</DL><p>'
+    + '<DT><A HREF="https://plain.example/">ไม่มีโฟลเดอร์</A>'
+    + '<DT><A HREF="javascript:alert(1)">สคริปต์</A>'
+    + '<DT><A>ไม่มีลิงก์</A>';
+  const parsed = parseBookmarksHTML(html);
+  assert.equal(parsed.length, 3);
+  assert.deepEqual(parsed[0], { title: 'คู่มือ', url: 'https://example.com/docs', folder: 'งาน' });
+  assert.deepEqual(parsed[1], { title: 'เมล', url: 'https://mail.example.com/', folder: 'งาน' });
+  assert.deepEqual(parsed[2], { title: 'ไม่มีโฟลเดอร์', url: 'https://plain.example/', folder: '' });
+  assert.deepEqual(parseBookmarksHTML(''), []);
+  assert.deepEqual(parseBookmarksHTML(null), []);
+  const entities = parseBookmarksHTML('<DL><p><DT><A HREF="https://example.com/?a=1&amp;b=2">Fish &amp; Chips</A>');
+  assert.equal(entities[0].title, 'Fish & Chips');
+  assert.equal(entities[0].url, 'https://example.com/?a=1&b=2');
+});
+
+test('compat mode builds stock Chrome UA and consistent client-hint brands', t => {
+  const ua = stockChromeUA('152.0.7977.76');
+  assert.equal(ua, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.7977.76 Safari/537.36');
+  assert.ok(!ua.includes('elysium'));
+  assert.equal(hintBrands({ chromeMode: true, chromeMajor: '152' }), '"Google Chrome";v="152", "Chromium";v="152", "Not/A)Brand";v="99"');
+  assert.equal(hintBrands({ chromeMajor: '152.0.1', appMajor: '1' }), '"elysium-browser";v="1", "Chromium";v="152", "Not/A)Brand";v="99"');
+  assert.deepEqual(sanitizeChromeHosts(['Example.COM', 'bad host!', 'example.com', 42]), ['example.com']);
+  assert.equal(sanitizeChromeHosts(['a'.repeat(300)])[0].length, 253);
+  assert.deepEqual(sanitizeChromeHosts('nope'), []);
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'elysium-core-'));
+  t.after(() => removeTestDirectory(directory));
+  const store = new BrowserStore(directory);
+  assert.deepEqual(store.data.settings.chromeHosts, []);
+  store.data.settings.chromeHosts = sanitizeChromeHosts(['bank.example']);
+  store.save();
+  assert.deepEqual(new BrowserStore(directory).data.settings.chromeHosts, ['bank.example']);
+});
+
+test('compat shim reports stock Chrome identity to page scripts', async () => {
+  const vm = require('node:vm');
+  const ua = stockChromeUA('152.0.7977.76');
+  const script = buildCompatShim({ userAgent: ua, chromeVersion: '152.0.7977.76' });
+  assert.ok(script.includes('Google Chrome') && script.includes('getHighEntropyValues'));
+  // Run the shim inside an isolated VM context with a fake navigator:
+  const context = vm.createContext({ navigator: { userAgent: 'elysium', userAgentData: { brands: [] } } });
+  vm.runInContext(script, context, { timeout: 1000 });
+  const check = await vm.runInContext(`(async () => JSON.stringify({
+    ua: navigator.userAgent,
+    brands: navigator.userAgentData.brands,
+    mobile: navigator.userAgentData.mobile,
+    platform: navigator.userAgentData.platform,
+    json: navigator.userAgentData.toJSON(),
+    high: await navigator.userAgentData.getHighEntropyValues(['architecture', 'bitness', 'platform', 'platformVersion', 'uaFullVersion', 'wow64', 'model']),
+    masked: navigator.userAgentData.getHighEntropyValues.toString(),
+  }))()`, context, { timeout: 1000 });
+  const result = JSON.parse(check);
+  assert.equal(result.ua, ua);
+  assert.equal(result.brands[0].brand, 'Google Chrome');
+  assert.equal(result.brands[0].version, '152');
+  assert.equal(result.mobile, false);
+  assert.equal(result.platform, 'Windows');
+  assert.equal(result.json.platform, 'Windows');
+  assert.deepEqual(result.high, { architecture: 'x86', bitness: '64', platform: 'Windows', platformVersion: '15.0.0', uaFullVersion: '152.0.7977.76', wow64: false, model: '' });
+  assert.match(result.masked, /native code/);
+});
+
+test('chrome mode follows the opted-in tab across third-party hosts', () => {
+  const hosts = ['www.speedtest.net'];
+  assert.equal(isChromeModeRequest({ requestHost: 'www.speedtest.net', ownerUrl: 'https://www.speedtest.net/th', chromeHosts: hosts }), true);
+  // Challenge/beacon hosts inherit the opted-in page identity.
+  assert.equal(isChromeModeRequest({ requestHost: 'challenges.cloudflare.com', ownerUrl: 'https://www.speedtest.net/th', chromeHosts: hosts }), true);
+  // Non-opted tabs stay elysium everywhere.
+  assert.equal(isChromeModeRequest({ requestHost: 'challenges.cloudflare.com', ownerUrl: 'https://example.com/', chromeHosts: hosts }), false);
+  assert.equal(isChromeModeRequest({ requestHost: 'example.com', ownerUrl: 'https://example.com/', chromeHosts: hosts }), false);
+  assert.equal(isChromeModeRequest({ requestHost: '', ownerUrl: '', chromeHosts: hosts }), false);
+  assert.equal(isChromeModeRequest({ requestHost: 'www.speedtest.net', chromeHosts: null }), false);
+});
+
+test('stuck verification pages resolve to their host for auto chrome mode', () => {
+  assert.equal(shouldAutoChromeMode({ title: 'Just a moment...', url: 'https://www.speedtest.net/th', chromeHosts: [] }), 'www.speedtest.net');
+  assert.equal(shouldAutoChromeMode({ title: 'Attention Required! | Cloudflare', url: 'https://example.com/', chromeHosts: [] }), 'example.com');
+  assert.equal(shouldAutoChromeMode({ title: 'Just a moment...', url: 'https://www.speedtest.net/th', chromeHosts: ['www.speedtest.net'] }), '');
+  assert.equal(shouldAutoChromeMode({ title: 'Speedtest by Ookla', url: 'https://www.speedtest.net/th', chromeHosts: [] }), '');
+  assert.equal(shouldAutoChromeMode({ title: 'Just a moment...', url: 'elysium://home', chromeHosts: [] }), '');
+  assert.equal(shouldAutoChromeMode({}), '');
 });

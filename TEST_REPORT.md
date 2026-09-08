@@ -1,5 +1,11 @@
 # elysium-browser — ผลตรวจรับ
 
+เวอร์ชัน 1.5.0 (8 กันยายน 2026): โหมด Chrome เปิดอัตโนมัติเมื่อหน้า verification ค้าง (toast + โหลดใหม่ครั้งเดียว กันลูป) ตรวจ source `npm run check` ผ่าน, unit 28/28, e2e รวมเทส auto-enable ใหม่ด้วย fixture /challenge
+
+เวอร์ชัน 1.4.2 (8 กันยายน 2026): แก้ fingerprint ให้สอดคล้องแบบ Chrome (ส่ง Sec-CH-UA/Mobile/Platform ทุกคำขอ + โหมด Chrome รายเว็บคลุมทั้งแท็บรวม challenge/beacon + shim สคริปต์ทุกเฟรม + lang ตาม OS) พิสูจน์เคสจริง speedtest.net/th ที่ค้างหน้า Cloudflare: รันแอปเปล่าไม่มี automation ไล่ตั้งแต่ headers อย่างเดียว (ไม่ผ่าน) จนสอดคล้องทั้ง session (ผ่านเต็มหน้าใน ~5s เท่า Chrome เพียว) ตรวจ source `npm run check` ผ่าน, unit 27/27, e2e 26/26
+
+เวอร์ชัน 1.4.1 (8 กันยายน 2026): ชุด parity แบบเบราว์เซอร์นิยม 6 อย่างเล็ก (Find in page Ctrl+F, จำซูมรายเว็บ, DNT/GPC + ล้างข้อมูลตอนปิด, เชื่อม elysium:// + Default apps, นำเข้าบุ๊กมาร์ก HTML, ความเร็วดาวน์โหลด) schema คง 5 ตรวจ source `npm run check` ผ่าน, unit 24/24 (เพิ่มเคส zoom/privacy/import), e2e 25/25 รวมเทส popular-basics ใหม่ (find จริง, ซูมคงหลัง reload, จับ header DNT/GPC จริง, speed>0 บน fixture slow)
+
 เวอร์ชัน 1.4.0 rebrand (8 กันยายน 2026): เปลี่ยนชื่อผลิตภัณฑ์เป็น elysium-browser ทั้งหมด ตรวจ source `npm run check` ผ่าน, unit 21/21 (เพิ่มเคส legacy profile + `cherry://` alias), e2e 24/24 ผ่านทั้งหมด (แก้ capture ใช้ setContentSize, download fixture แบบ slow, พบ+แก้บั๊ก slice(9)/elysiumCalendar) พร้อมอัปเดต screenshots หลักฐานให้ตรง UI ใหม่ Copyright: Heaven Technology Group Co., Ltd. and Heaven Technologies (package.json, README, PROJECT_SUMMARY, ASSETS-LICENSE)
 
 เวอร์ชัน 1.4.0 (8 กันยายน 2026): ตรวจ source `npm run check` ผ่าน, unit 20/20 (เพิ่มเคส downloads sanitize/persist, prune ไฟล์ที่หายไปจากดิสก์ และ migration schema 4 → 5 พร้อม backup `.before-schema-5`; แก้ชื่อเคส calendar เป็น schema 5) รัน `test:e2e` ได้ 16/24 — 7 เคสตกล้วนที่ helper `capture()` เพราะขนาดหน้าต่างจริงเพี้ยน 2px บนเครื่องนี้ (1442 แทน 1440 เป็นต้น) และเคส downloads pause/resume ตกที่จังหวะ pause แข่งกับสตรีม 2MB (~0.6s) พิสูจน์แล้วว่า baseline 1.3.13 ที่ไม่แตะโค้ดก็ตกแบบเดียวกันทั้ง 2 อาการ จึงไม่ใช่ regression จากงานนี้ `test:native` ผ่าน (20-tab lifecycle, suspend/dispose, download guard ผ่าน DownloadItem จริง) เหลือ build/verify แพ็กเกจก่อนปิดเวอร์ชัน
